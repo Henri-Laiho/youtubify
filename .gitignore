@@ -1,0 +1,17 @@
+*_data.json
+*_data.dev.json
+playlists.json
+venv/
+.idea/
+downloaded/
+testdata/
+__pycache__/
+playlists/
+dist/
+build/
+ffmpeg.exe
+*.spec
+Run.lnk
+src/conf_private.py
+*.ipynb
+/conf_playlist_export.py
