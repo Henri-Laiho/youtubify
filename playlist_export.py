@@ -2,6 +2,8 @@ import argparse
 import json
 import os
 
+from src.downloader import get_nice_path
+
 try:
     from conf_playlist_export import playlist_types
 except ImportError:
@@ -13,9 +15,9 @@ from src.persistance.track_data import add_storage_argparse, storage_setup
 from src.ytdownload import ensure_dir, ytdl_extension
 
 try:
-    from src.conf_private import spotify_local_files_folder
+    from src.conf_private import spotify_local_files_folders
 except ImportError:
-    spotify_local_files_folder = None
+    spotify_local_files_folders = None
 
 mode = 'm3u8'
 
@@ -62,12 +64,16 @@ if __name__ == '__main__':
     f.close()
 
     local_file_map = {}
-    if spotify_local_files_folder:
-        for i in os.listdir(spotify_local_files_folder):
-            key = i[:i.rindex('.')]
-            if key in local_file_map:
-                print('WARNING: track', key, 'has multiple instances in spotify local files')
-            local_file_map[key] = i
+    local_folder_map = {}
+    if spotify_local_files_folders:
+        for spotify_local_files_folder in spotify_local_files_folders:
+            for i in os.listdir(spotify_local_files_folder):
+                key = i[:i.rindex('.')]
+                if key in local_file_map:
+                    print('WARNING: track', key, 'has multiple instances in spotify local files')
+                local_file_map[key] = i
+                local_folder_map[key] = spotify_local_files_folder
+    spotify_local_files_folders_index = {x: i for i, x in enumerate(spotify_local_files_folders)}
 
     ensure_dir(conf.playlists_export_folder)
     for i, playlist in enumerate(data):
@@ -88,13 +94,14 @@ if __name__ == '__main__':
                     if no_local:
                         continue
 
-                    fname = x['track']['name']
+                    fname = get_nice_path(x['track']['name'], [artist['name'] for artist in x['track']['artists']])
                     if fname not in local_file_map:
                         print('ERROR:', fname, 'not found in local files')
                         continue
-                    fname = local_file_map[fname]
-                    path = os.path.join(playlist_type.spotify_missing_path, fname)
-                    entry = formatter(fname, j, path)
+                    filename = local_file_map[fname]
+                    idx = spotify_local_files_folders_index[local_folder_map[fname]]
+                    path = os.path.join(playlist_type.spotify_missing_paths[idx], filename)
+                    entry = formatter(filename, j, path)
                 else:
                     entry = format_track(x, j, formatter, playlist_type)
                 f.write(entry + '\n')

@@ -1,1 +1,1 @@
-spotify_local_files_folder = r"C:\Users\<user>\Music"
+spotify_local_files_folders = [r"C:\Users\<user>\Music"]

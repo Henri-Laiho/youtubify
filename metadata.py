@@ -13,7 +13,7 @@ from src.ytdownload import ytdl_extension, ensure_dir
 from youtubify import is_track_acceptable
 
 
-metadata_version = 1
+metadata_version = 2
 
 
 def fetch_genre_data(spotify_urls):
@@ -122,6 +122,8 @@ if __name__ == '__main__':
             release = album['release_date']
             art_urls = album['images']
             art_files = download_arts(art_urls, newfilename)
+            date_added = added_at[:added_at.index('T')]
+            time_added = added_at[added_at.index('T')+1:-1]
 
             set_metadata(newpath_ext,
                          title=name,
@@ -131,7 +133,7 @@ if __name__ == '__main__':
                          track_number=st_track['track_number'],
                          total_tracks=album['total_tracks'],
                          disc_number=st_track['disc_number'],
-                         comments=['Added %s' % added_at[:added_at.index('T')]],
+                         comments=['Added %s' % (date_added + ' ' + time_added)],
                          art_files=art_files, year=release[:None if '-' not in release else release.index('-')])
 
             for x, _, _ in art_files:

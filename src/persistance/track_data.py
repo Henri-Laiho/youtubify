@@ -2,8 +2,6 @@ import json
 import os
 
 from src import conf
-from src.downloader import get_nice_path
-from src.ytdownload import ytdl_extension
 
 isrc_to_data_default_file = 'isrc_to_data.json'
 private_id_prefix = 'HLY'
@@ -40,6 +38,7 @@ class Storage:
     isrc_to_track_data = {}
     metadata_version = {}
     ignored_tracks = {}
+    active_playlist_ids = {}
 
     @staticmethod
     def reset():
@@ -53,6 +52,7 @@ class Storage:
         Storage.isrc_to_track_data = {}
         Storage.metadata_version = {}
         Storage.ignored_tracks = {}
+        Storage.active_playlist_ids = {}
 
     @staticmethod
     def load_dict(data):
@@ -67,6 +67,8 @@ class Storage:
             Storage.metadata_version = data['metadata_version']
         if 'ignored_tracks' in data:
             Storage.ignored_tracks = data['ignored_tracks']
+        if 'active_playlist_ids' in data:
+            Storage.active_playlist_ids = data['active_playlist_ids']
 
     @staticmethod
     def get_save_dict():
@@ -79,6 +81,7 @@ class Storage:
             'isrc_to_track_data': Storage.isrc_to_track_data,
             'metadata_version': Storage.metadata_version,
             'ignored_tracks': Storage.ignored_tracks,
+            'active_playlist_ids': Storage.active_playlist_ids,
         }
 
     @staticmethod
@@ -117,6 +120,14 @@ class Storage:
     @staticmethod
     def add_access_url(isrc: str, url: str):
         Storage.isrc_to_access_url[isrc] = url
+
+    @staticmethod
+    def set_active_playlist(playlist_id: str, active: bool):
+        Storage.active_playlist_ids[playlist_id] = active
+
+    @staticmethod
+    def is_active_playlist(playlist_id: str):
+        return playlist_id in Storage.active_playlist_ids and Storage.active_playlist_ids[playlist_id]
 
     @staticmethod
     def get_access_url(isrc: str):

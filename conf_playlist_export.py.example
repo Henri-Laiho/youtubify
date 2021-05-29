@@ -4,14 +4,14 @@ from src import conf
 from src.utils.bunch import Bunch
 
 try:
-    from src.conf_private import spotify_local_files_folder
+    from src.conf_private import spotify_local_files_folders
 except ImportError:
-    spotify_local_files_folder = None
+    spotify_local_files_folders = None
 
 local_playlist = Bunch(downloaded_path=os.path.abspath(conf.downloaded_audio_folder),
-                       spotify_missing_path=spotify_local_files_folder,
+                       spotify_missing_paths=spotify_local_files_folders,
                        playlist_file_prefix='')
 other_device = Bunch(downloaded_path='/path/to/audio/library',
-                    spotify_missing_path='/path/to/spotify/local/files/folder',
+                    spotify_missing_paths=['/path/to/spotify/local/files/folder'],
                     playlist_file_prefix='other_device_')
 playlist_types = [local_playlist]  #, other_device]

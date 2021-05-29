@@ -1,2 +1,5 @@
 youtube-dl
 youtube-search
+numpy
+setuptools
+wget

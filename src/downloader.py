@@ -87,7 +87,11 @@ def get_raw_path(name, artists):
 
 
 def get_nice_path(name, artists):
-    return path_encode(artists[0] + ' - ' + name, nice_path_encoding)
+    if len(artists) > 0 and artists[0]:
+
+        return path_encode(artists[0] + ' - ' + name, nice_path_encoding)
+    else:
+        return path_encode(name, nice_path_encoding)
 
 
 def load_spotify_playlists(file=playlists_file):
@@ -164,19 +168,3 @@ def download_playlist(tracks, num_threads=1):
     for t in threads:
         t.join()
     print("Exiting Main Thread")
-
-
-if __name__ == '__main__':
-    tracks = []
-    f = open("../fire1.txt", "r")
-    for line in f:
-        split = line.split()
-        if len(split) > 4:
-            _, yt, _, _, isrc = split
-            tracks.append({YT: yt, ISRC: isrc})
-
-    playlists = load_spotify_playlists()
-
-    init_yt_isrc_tracks(tracks, playlists)
-
-    download_playlist(tracks, num_threads=5)
