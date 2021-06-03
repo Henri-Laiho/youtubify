@@ -67,10 +67,11 @@ class DlThread(threading.Thread):
                 self.queueLock.release()
                 if FILENAME not in track or YT not in track:
                     print("%s, track missing: %s" % (self.name, track[ISRC]))
-                yt = track[YT]
-                filename = track[FILENAME]
-                print("%s processing %s, about %d remaining (%s)" % (self.name, filename, size, yt))
-                self.downloader.download(yt, filename=filename)
+                else:
+                    yt = track[YT]
+                    filename = track[FILENAME]
+                    print("%s processing %s, about %d remaining (%s)" % (self.name, filename, size, yt))
+                    self.downloader.download(yt, filename=filename)
             else:
                 self.queueLock.release()
             time.sleep(0.01)
