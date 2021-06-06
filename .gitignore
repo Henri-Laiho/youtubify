@@ -15,3 +15,4 @@ Run.lnk
 src/conf_private.py
 *.ipynb
 /conf_playlist_export.py
+/*.log

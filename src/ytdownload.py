@@ -1,8 +1,16 @@
-# from __future__ import unicode_literals
+import logging
+
 import youtube_dl
 import os
 
-ytdl_extension = '.m4a'
+ytdl_extensions = ['.m4a', '.opus']
+
+
+def get_filename_ext(filename, dir):
+    for ext in ytdl_extensions:
+        if os.path.isfile(os.path.join(dir, filename + ext)):
+            return filename + ext
+    return None
 
 
 def ensure_dir(directory):
@@ -31,17 +39,14 @@ class YtDownload(object):
         ensure_dir(outDir)
 
         self.ydl_opts = {
-            'format': 'best',
+            'audio-format': 'best',
             'socket_timeout': 5,
             'retries': 5,
             'logger': DlLogger(),
             'progress_hooks': [self.msg_hook],
             'outtmpl': self.outtempl,
-            # 'nocheckcertificate' : True,
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
-                # 'preferredcodec': 'mp3',
-                # 'preferredquality': '320',
             }]
         }
 
@@ -49,12 +54,13 @@ class YtDownload(object):
         if d['status'] == 'finished':
             print('Done downloading, now converting ...')
 
-    def download(self, link, filename=None, overwrite=False):
-        if os.path.isfile(os.path.join(self.outdir, filename + ytdl_extension)):
+    def download(self, link, filename, overwrite=False):
+        fname = get_filename_ext(filename, self.outdir)
+        if fname is not None:
             if overwrite:
-                os.remove(filename)
+                os.remove(os.path.join(self.outdir, fname))
             else:
-                print("File already downloaded, skipping: %s" % (filename + ytdl_extension))
+                logging.info("File already downloaded, skipping: %s" % fname)
                 return
 
         if filename is not None:

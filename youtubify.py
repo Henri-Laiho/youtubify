@@ -7,13 +7,13 @@ from src import conf
 from src.downloader import get_nice_path
 from src.persistance.track_data import Storage, SusCode, add_storage_argparse, storage_setup, describe_track
 from src.search.Search import isrc_search, get_search_url, get_search_terms
-from src.ytdownload import ytdl_extension
+from src.ytdownload import get_filename_ext
 
 
 def is_track_acceptable(isrc):
     if isrc not in Storage.isrc_to_access_url:
         return False
-    if isrc in Storage.manual_confirm:
+    if isrc in Storage.manual_confirm and Storage.manual_confirm[isrc]:
         return True
     if isrc in Storage.sus_tracks:
         code = Storage.sus_tracks[isrc]['code']
@@ -159,8 +159,9 @@ def reset_track():
                     if isrc in Storage.isrc_to_track_data:
                         data = Storage.isrc_to_track_data[isrc]
                         newfilename = get_nice_path(data['title'], data['artists'])
-                        newpath_ext = os.path.join(conf.downloaded_audio_folder, newfilename) + ytdl_extension
-                        if os.path.isfile(newpath_ext):
+                        fname_ext = get_filename_ext(newfilename, conf.downloaded_audio_folder)
+                        if fname_ext is not None:
+                            newpath_ext = os.path.join(conf.downloaded_audio_folder, fname_ext)
                             os.remove(newpath_ext)
 
                     Storage.reset_track(isrc, force=True)
@@ -171,6 +172,16 @@ def reset_track():
                     break
             except ValueError:
                 print('Invalid input')
+
+
+def list_manual():
+    print("Manually confirmed tracks:")
+    i = 0
+    for isrc in Storage.manual_confirm:
+        if Storage.manual_confirm[isrc]:
+            print("%s; %s; %s" % (isrc, Storage.isrc_to_access_url[isrc], Storage.isrc_to_track_data[isrc]))
+            i += 1
+    print("Total %d manually confirmed tracks" % i)
 
 
 def list_playlists(data=None):
@@ -195,6 +206,7 @@ if __name__ == '__main__':
                         help='Review sus tracks while automatically opening youtube pages', default=False)
     parser.add_argument('-l', '--list', action='store_true', help='List available playlists with activation status',
                         default=False)
+    parser.add_argument('--lsman', action='store_true', help='List manually confirmed tracks', default=False)
     parser.add_argument('-a', '--activate', type=int,
                         help='Activate playlist for spotify to youtube synchronization, ' +
                              'use "youtubify -l" to list available playlists', default=None)
@@ -206,6 +218,8 @@ if __name__ == '__main__':
 
     if args.list:
         list_playlists()
+    elif args.lsman:
+        list_manual()
     elif args.activate is not None:
         f = open(conf.playlists_file, "r")
         data = json.loads(f.read())
@@ -251,6 +265,7 @@ if __name__ == '__main__':
                 print('3 - Review sus tracks')
                 print('3a - Review sus tracks while automatically opening youtube pages')
                 print('4 - Reset confirmed track')
+                print('5 - List manually confirmed tracks')
                 print('q - Exit')
                 act = input('Select: ')
                 if act == '1':
@@ -265,6 +280,8 @@ if __name__ == '__main__':
                     browser = True
                 elif act == '4':
                     state = 4
+                elif act == '5':
+                    state = 5
                 elif act == 'q':
                     state = -1
             if state == 1:
@@ -297,6 +314,9 @@ if __name__ == '__main__':
                 reset_track()
                 Storage.save()
                 print('Data saved.')
+                state = 0
+            elif state == 5:
+                list_manual()
                 state = 0
             print()
         Storage.save()

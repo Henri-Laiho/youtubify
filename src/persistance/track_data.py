@@ -7,7 +7,6 @@ isrc_to_data_default_file = 'isrc_to_data.json'
 private_id_prefix = 'HLY'
 autogen_detector_version = 1
 
-
 class SusCode:
     kw_search = 'kw-search'
     isrc_low_lev = 'isrc-low-lev'
@@ -39,6 +38,7 @@ class Storage:
     metadata_version = {}
     ignored_tracks = {}
     active_playlist_ids = {}
+    url_local_downloaded_status = {}
 
     @staticmethod
     def reset():
@@ -53,6 +53,7 @@ class Storage:
         Storage.metadata_version = {}
         Storage.ignored_tracks = {}
         Storage.active_playlist_ids = {}
+        Storage.url_local_downloaded_status = {}
 
     @staticmethod
     def load_dict(data):
@@ -69,6 +70,8 @@ class Storage:
             Storage.ignored_tracks = data['ignored_tracks']
         if 'active_playlist_ids' in data:
             Storage.active_playlist_ids = data['active_playlist_ids']
+        if 'url_local_downloaded_status' in data:
+            Storage.url_local_downloaded_status = data['url_local_downloaded_status']
 
     @staticmethod
     def get_save_dict():
@@ -82,6 +85,7 @@ class Storage:
             'metadata_version': Storage.metadata_version,
             'ignored_tracks': Storage.ignored_tracks,
             'active_playlist_ids': Storage.active_playlist_ids,
+            'url_local_downloaded_status': Storage.url_local_downloaded_status,
         }
 
     @staticmethod
@@ -108,7 +112,7 @@ class Storage:
             if input('%s has been manually confirmed. Are you sure you want to reset it? (y/N): ').lower() != 'y':
                 return False
         for data in [Storage.manual_confirm, Storage.sus_tracks, Storage.isrc_to_access_url, Storage.is_autogen,
-                     Storage.ignored_tracks, Storage.metadata_version]:
+                     Storage.ignored_tracks, Storage.metadata_version, Storage.url_local_downloaded_status]:
             if isrc in data:
                 del data[isrc]
         return True

@@ -6,14 +6,13 @@ import wget as wget
 from music_tag import Artwork, MetadataItem
 
 from src import conf
-from src.downloader import load_spotify_playlists, get_raw_path, get_nice_path, ISRC_MAP
+from src.downloader import load_spotify_playlists, get_nice_path, ISRC_MAP
 from src.persistance.track_data import Storage, add_storage_argparse, storage_setup
 from src.spotify.spotify_backup import SpotifyAPI
-from src.ytdownload import ytdl_extension, ensure_dir
+from src.ytdownload import ensure_dir, get_filename_ext
 from youtubify import is_track_acceptable
 
-
-metadata_version = 2
+metadata_version = 3
 
 
 def fetch_genre_data(spotify_urls):
@@ -93,14 +92,14 @@ if __name__ == '__main__':
             track = Storage.isrc_to_track_data[isrc]
             name = track['title']
             artists = track['artists']
-            oldpath_ext = os.path.join(conf.downloaded_audio_folder, get_raw_path(name, artists)) + ytdl_extension
             newfilename = get_nice_path(name, artists)
-            newpath_ext = os.path.join(conf.downloaded_audio_folder, newfilename) + ytdl_extension
+            fnext = get_filename_ext(newfilename, conf.downloaded_audio_folder)
+            newpath_ext = None
+            if fnext is not None:
+                newpath_ext = os.path.join(conf.downloaded_audio_folder, fnext)
 
-            if os.path.isfile(newpath_ext):
+            if newpath_ext is not None and os.path.isfile(newpath_ext):
                 pass
-            elif os.path.isfile(oldpath_ext):
-                os.rename(oldpath_ext, newpath_ext)
             else:
                 print('\nWARNING: track "%s" missing' % (', '.join(artists) + ' - ' + name))
                 continue
@@ -123,7 +122,7 @@ if __name__ == '__main__':
             art_urls = album['images']
             art_files = download_arts(art_urls, newfilename)
             date_added = added_at[:added_at.index('T')]
-            time_added = added_at[added_at.index('T')+1:-1]
+            time_added = added_at[added_at.index('T') + 1:-1]
 
             set_metadata(newpath_ext,
                          title=name,

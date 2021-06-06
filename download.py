@@ -1,15 +1,25 @@
 import argparse
+import logging
 
 from src import conf
-from src.downloader import load_spotify_playlists, init_yt_isrc_tracks, download_playlist, YT, ISRC
+from src.downloader import load_spotify_playlists, init_yt_isrc_tracks, download_playlist, YT, ISRC, download_version
 from src.persistance.track_data import Storage, add_storage_argparse, storage_setup
 from youtubify import is_track_acceptable
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     add_storage_argparse(parser)
+    parser.add_argument('-v', '--verify', action='store_true', help='Verify all files exist', default=False)
     args = parser.parse_args()
     storage_setup(args)
+
+    logging.basicConfig(filename='ldownload.log',
+                        format="%(asctime)s [%(levelname)s] - %(message)s",
+                        level=logging.INFO)
+    console = logging.StreamHandler()
+    console.setFormatter(logging.Formatter(fmt="%(asctime)s [%(levelname)s] - %(message)s"))
+    logging.getLogger('').addHandler(console)
 
     tracks = []
     for isrc in Storage.isrc_to_access_url:
@@ -20,4 +30,15 @@ if __name__ == '__main__':
 
     init_yt_isrc_tracks(tracks, playlists)
 
-    download_playlist(tracks, num_threads=5)
+
+    if not args.verify:
+        new_tracks = []
+        for track in tracks:
+            yt = track[YT]
+            if yt not in Storage.url_local_downloaded_status or Storage.url_local_downloaded_status[yt] < download_version:
+                new_tracks.append(track)
+        tracks = new_tracks
+
+    download_playlist(tracks, num_threads=8)
+
+    Storage.save()

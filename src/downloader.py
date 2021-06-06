@@ -1,10 +1,14 @@
 import json
+import logging
 import os
 from queue import Queue
 import threading
 import time
 
+import youtube_dl
+
 from src import conf
+from src.persistance.track_data import Storage
 from src.ytdownload import YtDownload
 
 ISRC_MAP = '_isrc_map'
@@ -14,6 +18,7 @@ ARTISTS = 'artists'
 NAME = 'name'
 FILENAME = 'filename'
 playlists_file = os.path.join("spotify", "playlists.json")
+download_version = 1
 
 encoder = '@'
 path_encoding = {
@@ -52,11 +57,12 @@ class DlThread(threading.Thread):
         self.queueLock = queueLock
         self.checkExit = checkExit
         self.downloader = YtDownload(outDir=conf.downloaded_audio_folder)
+        self.errors = 0
 
     def run(self):
-        print("Starting " + self.name)
+        logging.info("Starting " + self.name)
         self.process_data(self.q)
-        print("Exiting " + self.name)
+        logging.info("Exiting " + self.name)
 
     def process_data(self, q):
         while not self.checkExit():
@@ -66,12 +72,22 @@ class DlThread(threading.Thread):
                 size = q.qsize()
                 self.queueLock.release()
                 if FILENAME not in track or YT not in track:
-                    print("%s, track missing: %s" % (self.name, track[ISRC]))
+                    logging.warning("%s, track missing: %s" % (self.name, track[ISRC]))
                 else:
                     yt = track[YT]
                     filename = track[FILENAME]
-                    print("%s processing %s, about %d remaining (%s)" % (self.name, filename, size, yt))
-                    self.downloader.download(yt, filename=filename)
+                    logging.info("%s processing %s, about %d remaining (%s)" % (self.name, filename, size, yt))
+                    try:
+                        self.downloader.download(yt, filename=filename)
+                        Storage.url_local_downloaded_status[yt] = download_version
+                    except youtube_dl.utils.DownloadError as err:
+                        logging.error("%s Download Error, resetting track %s - %s:" % (self.name, filename, yt) + str(err))
+                        Storage.reset_track(track[ISRC], force=True)
+                        self.errors += 1
+                        if self.errors > 1000:
+                            logging.critical("Maximum number if errors reached, %s exiting" % self.name)
+                            break
+
             else:
                 self.queueLock.release()
             time.sleep(0.01)
@@ -83,8 +99,8 @@ def path_encode(path, encoding):
     return path
 
 
-def get_raw_path(name, artists):
-    return path_encode(', '.join(['%s' % artist for artist in artists]) + ' - %s' % name, path_encoding)
+# def get_raw_path(name, artists):
+#    return path_encode(', '.join(['%s' % artist for artist in artists]) + ' - %s' % name, path_encoding)
 
 
 def get_nice_path(name, artists):

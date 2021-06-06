@@ -12,7 +12,7 @@ except ImportError:
     exit(-1)
 from src import conf, downloader
 from src.persistance.track_data import add_storage_argparse, storage_setup
-from src.ytdownload import ensure_dir, ytdl_extension
+from src.ytdownload import ensure_dir, get_filename_ext
 
 try:
     from src.conf_private import spotify_local_files_folders
@@ -46,7 +46,9 @@ def format_track(list_track, number, formatter, playlist_type):
     track = list_track['track']
     name = track['name']
     artists = [x['name'] for x in track['artists']]
-    fname = downloader.get_nice_path(name, artists) + ytdl_extension
+    fname = get_filename_ext(downloader.get_nice_path(name, artists), conf.downloaded_audio_folder)
+    if fname is None:
+        return None
     fullpath = os.path.join(playlist_type.downloaded_path, fname)
     return formatter(fname, number, fullpath)
 
@@ -104,6 +106,7 @@ if __name__ == '__main__':
                     entry = formatter(filename, j, path)
                 else:
                     entry = format_track(x, j, formatter, playlist_type)
-                f.write(entry + '\n')
+                if entry is not None:
+                    f.write(entry + '\n')
 
             f.close()

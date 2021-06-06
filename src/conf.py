@@ -9,3 +9,4 @@ downloaded_artwork_folder = os.path.join(downloaded_audio_folder, 'art')
 class Flags:
     development = False
     profile = 'ytfy'
+    max_download_errors = 1000
