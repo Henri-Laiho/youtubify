@@ -75,11 +75,12 @@ class DlThread(threading.Thread):
                     logging.warning("%s, track missing: %s" % (self.name, track[ISRC]))
                 else:
                     yt = track[YT]
+                    isrc = track[ISRC]
                     filename = track[FILENAME]
                     logging.info("%s processing %s, about %d remaining (%s)" % (self.name, filename, size, yt))
                     try:
                         self.downloader.download(yt, filename=filename)
-                        Storage.url_local_downloaded_status[yt] = download_version
+                        Storage.isrc_local_downloaded_status[isrc] = download_version
                     except youtube_dl.utils.DownloadError as err:
                         logging.error("%s Download Error, resetting track %s - %s:" % (self.name, filename, yt) + str(err))
                         Storage.reset_track(track[ISRC], force=True)

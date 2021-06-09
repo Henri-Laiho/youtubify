@@ -34,8 +34,9 @@ if __name__ == '__main__':
     if not args.verify:
         new_tracks = []
         for track in tracks:
+            isrc = track[ISRC]
             yt = track[YT]
-            if yt not in Storage.url_local_downloaded_status or Storage.url_local_downloaded_status[yt] < download_version:
+            if isrc not in Storage.isrc_local_downloaded_status or Storage.isrc_local_downloaded_status[isrc] < download_version:
                 new_tracks.append(track)
         tracks = new_tracks
 
