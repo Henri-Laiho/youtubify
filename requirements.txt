@@ -4,3 +4,4 @@ numpy
 setuptools
 wget
 levenshtein
+music-tag
