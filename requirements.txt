@@ -3,3 +3,4 @@ youtube-search
 numpy
 setuptools
 wget
+levenshtein
