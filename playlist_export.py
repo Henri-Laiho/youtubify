@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 
+from src.conf import spotify_unsupported_preview_suffix
 from src.downloader import get_nice_path
 
 try:
@@ -97,11 +98,16 @@ if __name__ == '__main__':
                         continue
 
                     fname = get_nice_path(x['track']['name'], [artist['name'] for artist in x['track']['artists']])
-                    if fname not in local_file_map:
-                        print('ERROR:', fname, 'not found in local files')
-                        continue
-                    filename = local_file_map[fname]
-                    idx = spotify_local_files_folders_index[local_folder_map[fname]]
+                    if fname.endswith(spotify_unsupported_preview_suffix):
+                        filename = fname[:-len(spotify_unsupported_preview_suffix)]
+                        key = filename[:filename.rindex('.')]
+                        idx = spotify_local_files_folders_index[local_folder_map[key]]
+                    else:
+                        if fname not in local_file_map:
+                            print('ERROR:', fname, 'not found in local files')
+                            continue
+                        filename = local_file_map[fname]
+                        idx = spotify_local_files_folders_index[local_folder_map[fname]]
                     path = os.path.join(playlist_type.spotify_missing_paths[idx], filename)
                     entry = formatter(filename, j, path)
                 else:

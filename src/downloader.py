@@ -106,7 +106,6 @@ def path_encode(path, encoding):
 
 def get_nice_path(name, artists):
     if len(artists) > 0 and artists[0]:
-
         return path_encode(artists[0] + ' - ' + name, nice_path_encoding)
     else:
         return path_encode(name, nice_path_encoding)
