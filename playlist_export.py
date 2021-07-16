@@ -84,9 +84,10 @@ if __name__ == '__main__':
         print(i, list_name)
 
         for playlist_type in playlist_types:
-
+            directory = os.path.join(conf.playlists_export_folder, playlist_type.playlist_file_prefix)
+            ensure_dir(directory)
             f = open(
-                os.path.join(conf.playlists_export_folder, playlist_type.playlist_file_prefix + list_name + extension),
+                os.path.join(directory, playlist_type.playlist_file_prefix + '_' + list_name + extension),
                 mode='w+',
                 encoding='utf8')
 
