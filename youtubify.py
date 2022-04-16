@@ -69,7 +69,7 @@ def convert_tracks():
                     if new_artists != old_artists or new_title != old_title:
                         old_filename = get_filename_ext(get_nice_path(old_title, old_artists), conf.downloaded_audio_folder)
                         if old_filename is not None:
-                            new_filename = get_nice_path(new_title, new_artists) + old_path[old_path.rindex('.'):]
+                            new_filename = get_nice_path(new_title, new_artists) + old_filename[old_filename.rindex('.'):]
                             old_path = os.path.join(conf.downloaded_audio_folder, old_filename)
                             new_path = os.path.join(conf.downloaded_audio_folder, new_filename)
                             if old_path != new_path:
