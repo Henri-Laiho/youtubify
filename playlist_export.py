@@ -59,6 +59,35 @@ def format_track(list_track, number, formatter, playlist_type):
     return formatter(fname, number, fullpath)
 
 
+def join_playlists(p1, p2):
+    tracks = p1['tracks'][:]
+    ids = {x['track']['id'] if x['track']['id'] is not None else x['track']['name'] for x in tracks}
+    for y in p2['tracks']:
+        id = y['track']['id'] if y['track']['id'] is not None else y['track']['name']
+        if id not in ids:
+            tracks.append(y)
+            ids.add(id)
+    return {
+        'name': '%s & %s' % (p1['name'], p2['name']), 
+        'tracks': tracks
+        }
+
+
+def add_compositions(playlists):
+    id_to_plist = {x['id'] if 'id' in x else '0' : x for x in playlists}
+    for name in Storage.playlist_compositions:
+        prev = None
+        for id in Storage.playlist_compositions[name]:
+            playlist = id_to_plist[id]
+            if prev is not None:
+                prev = join_playlists(prev, playlist)
+            else:
+                prev = playlist
+        prev['name'] = "%s (%s)" % (name, prev['name'])
+        playlists.append(prev)
+    return playlists
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     add_storage_argparse(parser)
@@ -84,6 +113,7 @@ if __name__ == '__main__':
     spotify_local_files_folders_index = {x: i for i, x in enumerate(spotify_local_files_folders)}
 
     ensure_dir(conf.playlists_export_folder)
+    data = add_compositions(data)
     for i, playlist in enumerate(data):
         list_name = playlist['name']
         print(i, list_name)
