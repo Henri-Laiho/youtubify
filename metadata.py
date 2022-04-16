@@ -6,7 +6,7 @@ import wget as wget
 from music_tag import Artwork, MetadataItem
 
 from src import conf
-from src.downloader import load_spotify_playlists, get_nice_path, ISRC_MAP
+from src.downloader import load_spotify_playlists, ISRC_MAP
 from src.persistance.track_data import Storage, add_storage_argparse, storage_setup
 from src.spotify.spotify_backup import SpotifyAPI
 from src.ytdownload import ensure_dir, get_filename_ext
@@ -92,7 +92,9 @@ if __name__ == '__main__':
             track = Storage.isrc_to_track_data[isrc]
             name = track['title']
             artists = track['artists']
-            newfilename = get_nice_path(name, artists)
+            if 'filename' not in track:
+                continue
+            newfilename = track['filename']
             fnext = get_filename_ext(newfilename, conf.downloaded_audio_folder)
             newpath_ext = None
             if fnext is not None:
@@ -101,7 +103,7 @@ if __name__ == '__main__':
             if newpath_ext is not None and os.path.isfile(newpath_ext):
                 pass
             else:
-                print('\nWARNING: track "%s" missing' % (', '.join(artists) + ' - ' + name))
+                print('\nWARNING: track "%s" missing' % newfilename)
                 continue
 
             if isrc in Storage.metadata_version and Storage.metadata_version[isrc] >= metadata_version:

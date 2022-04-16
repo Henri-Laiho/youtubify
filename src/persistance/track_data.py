@@ -89,8 +89,8 @@ class Storage:
         }
 
     @staticmethod
-    def set_track_data(isrc: str, artists: list, title: str):
-        Storage.isrc_to_track_data[isrc] = {'artists': artists, 'title': title}
+    def set_track_data(isrc: str, artists: list, title: str, filename: str):
+        Storage.isrc_to_track_data[isrc] = {'artists': artists, 'title': title, 'filename': filename}
 
     @staticmethod
     def add_sus_track(isrc: str, search_results=None, artists: list = None, title: str = None, code='', data=None):

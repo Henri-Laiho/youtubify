@@ -147,7 +147,11 @@ def init_yt_isrc_tracks(tracks, playlists):
             continue
         track[NAME] = name
         track[ARTISTS] = artists
-        track[FILENAME] = get_nice_path(name, artists)
+        if isrc in Storage.isrc_to_track_data:
+            track[FILENAME] = Storage.isrc_to_track_data[isrc]['filename']
+        else:
+            track[FILENAME] = get_nice_path(name, artists)
+            print('Warning: using old filename: %s' % track[FILENAME])
 
 
 def download_playlist(tracks, num_threads=1):

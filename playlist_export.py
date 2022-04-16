@@ -12,7 +12,7 @@ except ImportError:
     print('Copy conf_playlist_export.py.example to conf_playlist_export.py and modify if needed.')
     exit(-1)
 from src import conf, downloader
-from src.persistance.track_data import add_storage_argparse, storage_setup
+from src.persistance.track_data import add_storage_argparse, storage_setup, Storage
 from src.ytdownload import ensure_dir, get_filename_ext
 
 try:
@@ -45,9 +45,14 @@ else:
 
 def format_track(list_track, number, formatter, playlist_type):
     track = list_track['track']
-    name = track['name']
-    artists = [x['name'] for x in track['artists']]
-    fname = get_filename_ext(downloader.get_nice_path(name, artists), conf.downloaded_audio_folder)
+    isrc = track['external_ids']['isrc']
+    if isrc not in Storage.isrc_to_track_data:
+        return None
+    data = Storage.isrc_to_track_data[isrc]
+    title = data['title']
+    artists = data['artists']
+
+    fname = get_filename_ext(data['filename'], conf.downloaded_audio_folder)
     if fname is None:
         return None
     fullpath = os.path.join(playlist_type.downloaded_path, fname)

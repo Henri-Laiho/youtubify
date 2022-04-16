@@ -4,7 +4,7 @@ import os
 import webbrowser
 
 from src import conf
-from src.downloader import get_nice_path
+from src.downloader import get_nice_path, path_encode, nice_path_encoding
 from src.persistance.track_data import Storage, SusCode, add_storage_argparse, storage_setup, describe_track
 from src.search.Search import isrc_search, get_search_url, get_search_terms
 from src.ytdownload import get_filename_ext
@@ -56,6 +56,7 @@ def convert_tracks():
     data_ids = {'0' if 'id' not in plist else plist['id']: plist for plist in data}
     for playlist_id in Storage.active_playlist_ids:
         if Storage.is_active_playlist(playlist_id):
+            temp_name_to_isrc = dict()
             playlist = data_ids[playlist_id]
             for x in playlist['tracks']:
                 if x['track']['is_local']:
@@ -63,19 +64,32 @@ def convert_tracks():
                 isrc = x['track']['external_ids']['isrc']
                 new_artists = [y['name'] for y in x['track']['artists']]
                 new_title = x['track']['name']
-                if isrc in Storage.isrc_to_track_data:
-                    old_artists = Storage.isrc_to_track_data[isrc]['artists']
-                    old_title = Storage.isrc_to_track_data[isrc]['title']
-                    if new_artists != old_artists or new_title != old_title:
-                        old_filename = get_filename_ext(get_nice_path(old_title, old_artists), conf.downloaded_audio_folder)
+                new_name = get_nice_path(new_title, new_artists)
+                if new_name.lower() in temp_name_to_isrc:
+                    print('Duplicate names: %s. Adding album name.' % new_name)
+                    new_album = path_encode(x['track']['album']['name'], nice_path_encoding)
+                    albumname = "%s {%s}" % (new_name, new_album)
+                    if albumname.lower() in temp_name_to_isrc:
+                        isrcname = "%s{%s}" % (albumname, isrc)
+                        if isrcname.lower() in temp_name_to_isrc:
+                            print('ERROR: duplicate artist, title, album and isrc: %s. Ignoring duplicate.' % isrcname)
+                            continue
+                        albumname = isrcname
+                    new_name = albumname
+                temp_name_to_isrc[new_name.lower()] = isrc
+
+                if isrc in Storage.isrc_to_track_data and 'filename' in Storage.isrc_to_track_data[isrc]:
+                    old_name = Storage.isrc_to_track_data[isrc]['filename']
+                    if old_name != new_name:
+                        old_filename = get_filename_ext(old_name, conf.downloaded_audio_folder)
                         if old_filename is not None:
-                            new_filename = get_nice_path(new_title, new_artists) + old_filename[old_filename.rindex('.'):]
+                            new_filename = new_name + old_filename[old_filename.rindex('.'):]
                             old_path = os.path.join(conf.downloaded_audio_folder, old_filename)
                             new_path = os.path.join(conf.downloaded_audio_folder, new_filename)
                             if old_path != new_path:
                                 print('Names changed: renaming file "%s" to "%s"' % (old_filename, new_filename))
                                 os.rename(old_path, new_path)
-                Storage.set_track_data(isrc, artists=new_artists, title=new_title)
+                Storage.set_track_data(isrc, artists=new_artists, title=new_title, filename=new_name)
 
             i = 0
             tracks = playlist['tracks'][:]
@@ -171,7 +185,7 @@ def reset_track():
 
                     if isrc in Storage.isrc_to_track_data:
                         data = Storage.isrc_to_track_data[isrc]
-                        newfilename = get_nice_path(data['title'], data['artists'])
+                        newfilename = data['filename']
                         fname_ext = get_filename_ext(newfilename, conf.downloaded_audio_folder)
                         if fname_ext is not None:
                             newpath_ext = os.path.join(conf.downloaded_audio_folder, fname_ext)
