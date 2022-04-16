@@ -211,15 +211,68 @@ def list_manual():
     print("Total %d manually confirmed tracks" % i)
 
 
-def list_playlists(data=None):
+def is_active(plist):
+    return Storage.is_active_playlist('0' if 'id' not in plist else plist['id'])
+
+
+def list_playlists(data=None, condition=is_active):
     if data is None:
         f = open(conf.playlists_file, "r")
         data = json.loads(f.read())
         f.close()
     for i, plist in enumerate(data):
-        print('%4d' % i, '+' if Storage.is_active_playlist('0' if 'id' not in plist else plist['id']) else ' ',
+        print('%4d' % i, '+' if condition(plist) else ' ',
               plist['name'])
     return data
+
+
+def list_playlist_comps():
+    data = []
+    for i, plist in enumerate(Storage.playlist_compositions.keys()):
+        print('%4d' % i, plist)
+        data.append(plist)
+    return data
+
+
+def compose_playlists():
+    data = None
+    while 1:
+        comps = list_playlist_comps()
+        name = input('Enter playlist composition name to edit or create composition, or q to exit: ')
+        if name == '' or name == 'q':
+            break
+        try:
+            name = comps[int(name)]
+        except ValueError:
+            pass
+        if name in Storage.playlist_compositions:
+            comp = Storage.playlist_compositions[name]
+        else:
+            comp = {}
+
+        while 1:
+            def is_in_comp(plist):
+                id = '0' if 'id' not in plist else plist['id']
+                return id in comp
+            print('Editing playlist composition "%s"' % name)
+            data = list_playlists(data, condition=is_in_comp)
+            idx = input('Select playlist to toggle or enter q to exit or enter "delete" to delete the composition: ')
+            if idx == '' or idx == 'q':
+                Storage.playlist_compositions[name] = comp
+                break
+            elif idx == 'delete':
+                del Storage.playlist_compositions[name]
+                break
+            try:
+                playlist = data[int(idx)]
+                id_code = '0' if 'id' not in playlist else playlist['id']
+                if id_code in comp:
+                    del comp[id_code]
+                else:
+                    comp[id_code] = True
+            except ValueError:
+                print('Invalid input')
+        
 
 
 if __name__ == '__main__':
@@ -234,6 +287,7 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--list', action='store_true', help='List available playlists with activation status',
                         default=False)
     parser.add_argument('--lsman', action='store_true', help='List manually confirmed tracks', default=False)
+    parser.add_argument('--compose', action='store_true', help='Make compositions of multiple playlists', default=False)
     parser.add_argument('-a', '--activate', type=int,
                         help='Activate playlist for spotify to youtube synchronization, ' +
                              'use "youtubify -l" to list available playlists', default=None)
@@ -281,6 +335,10 @@ if __name__ == '__main__':
         reset_track()
         Storage.save()
         print('Data saved.')
+    elif args.compose:
+        compose_playlists()
+        Storage.save()
+        print('Data saved.')
     else:
         state = 0
         playlist = None
@@ -293,6 +351,7 @@ if __name__ == '__main__':
                 print('3a - Review sus tracks while automatically opening youtube pages')
                 print('4 - Reset confirmed track')
                 print('5 - List manually confirmed tracks')
+                print('6 - Edit playlist compositions')
                 print('q - Exit')
                 act = input('Select: ')
                 if act == '1':
@@ -309,6 +368,8 @@ if __name__ == '__main__':
                     state = 4
                 elif act == '5':
                     state = 5
+                elif act == '6':
+                    state = 6
                 elif act == 'q':
                     state = -1
             if state == 1:
@@ -344,6 +405,11 @@ if __name__ == '__main__':
                 state = 0
             elif state == 5:
                 list_manual()
+                state = 0
+            elif state == 6:
+                compose_playlists()
+                Storage.save()
+                print('Data saved.')
                 state = 0
             print()
         Storage.save()
