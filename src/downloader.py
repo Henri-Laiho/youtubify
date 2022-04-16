@@ -85,7 +85,7 @@ class DlThread(threading.Thread):
                         logging.error("%s Download Error, resetting track %s - %s:" % (self.name, filename, yt) + str(err))
                         Storage.reset_track(track[ISRC], force=True)
                         self.errors += 1
-                        if self.errors > 1000:
+                        if self.errors > conf.Flags.max_download_errors:
                             logging.critical("Maximum number if errors reached, %s exiting" % self.name)
                             break
 

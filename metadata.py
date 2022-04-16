@@ -12,7 +12,7 @@ from src.spotify.spotify_backup import SpotifyAPI
 from src.ytdownload import ensure_dir, get_filename_ext
 from youtubify import is_track_acceptable
 
-metadata_version = 3
+metadata_version = 4
 
 
 def fetch_genre_data(spotify_urls):
@@ -132,7 +132,7 @@ if __name__ == '__main__':
                          track_number=st_track['track_number'],
                          total_tracks=album['total_tracks'],
                          disc_number=st_track['disc_number'],
-                         comments=['Added %s' % (date_added + ' ' + time_added)],
+                         comments=['Added %s; isrc=%s' % (date_added + ' ' + time_added, isrc)],
                          art_files=art_files, year=release[:None if '-' not in release else release.index('-')])
 
             for x, _, _ in art_files:

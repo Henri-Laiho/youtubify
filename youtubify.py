@@ -60,9 +60,22 @@ def convert_tracks():
             for x in playlist['tracks']:
                 if x['track']['is_local']:
                     continue
-                Storage.set_track_data(x['track']['external_ids']['isrc'],
-                                       artists=[y['name'] for y in x['track']['artists']],
-                                       title=x['track']['name'])
+                isrc = x['track']['external_ids']['isrc']
+                new_artists = [y['name'] for y in x['track']['artists']]
+                new_title = x['track']['name']
+                if isrc in Storage.isrc_to_track_data:
+                    old_artists = Storage.isrc_to_track_data[isrc]['artists']
+                    old_title = Storage.isrc_to_track_data[isrc]['title']
+                    if new_artists != old_artists or new_title != old_title:
+                        old_filename = get_filename_ext(get_nice_path(old_title, old_artists), conf.downloaded_audio_folder)
+                        if old_filename is not None:
+                            new_filename = get_nice_path(new_title, new_artists) + old_path[old_path.rindex('.'):]
+                            old_path = os.path.join(conf.downloaded_audio_folder, old_filename)
+                            new_path = os.path.join(conf.downloaded_audio_folder, new_filename)
+                            if old_path != new_path:
+                                print('Names changed: renaming file "%s" to "%s"' % (old_filename, new_filename))
+                                os.rename(old_path, new_path)
+                Storage.set_track_data(isrc, artists=new_artists, title=new_title)
 
             i = 0
             tracks = playlist['tracks'][:]
