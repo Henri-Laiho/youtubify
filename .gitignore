@@ -3,6 +3,7 @@
 playlists.json
 venv/
 .idea/
+.vs/
 downloaded/
 testdata/
 __pycache__/

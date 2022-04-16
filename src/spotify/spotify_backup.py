@@ -150,11 +150,19 @@ def main(args):
 
     playlists = []
 
+    def process_isrc(tracks):
+        if 'rm_dash_in_isrc' in args.dump:
+            for i in range(len(tracks)):
+                if 'isrc' in tracks[i]['track']['external_ids']:
+                    isrc = tracks[i]['track']['external_ids']['isrc']
+                    tracks[i]['track']['external_ids']['isrc'] = isrc.replace('-', '')
+        return tracks
+
     # List liked songs
     if 'liked' in args.dump:
         logging.info('Loading liked songs...')
         liked_tracks = spotify.list('users/{user_id}/tracks'.format(user_id=me['id']), {'limit': 50})
-        playlists += [{'name': 'Liked Songs', 'tracks': liked_tracks}]
+        playlists += [{'name': 'Liked Songs', 'tracks': process_isrc(liked_tracks)}]
 
     # List all playlists and the tracks in each playlist
     if 'playlists' in args.dump:
@@ -165,7 +173,7 @@ def main(args):
         # List all tracks in each playlist
         for playlist in playlist_data:
             logging.info('Loading playlist: {name} ({tracks[total]} songs)'.format(**playlist))
-            playlist['tracks'] = spotify.list(playlist['tracks']['href'], {'limit': 100})
+            playlist['tracks'] = process_isrc(spotify.list(playlist['tracks']['href'], {'limit': 100}))
         playlists += playlist_data
 
     # Write the file.
