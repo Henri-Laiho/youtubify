@@ -53,10 +53,16 @@ def convert_tracks():
     data = json.loads(f.read())
     f.close()
 
+    playlists_to_disable = []
     data_ids = {'0' if 'id' not in plist else plist['id']: plist for plist in data}
     for playlist_id in Storage.active_playlist_ids:
         if Storage.is_active_playlist(playlist_id):
             temp_name_to_isrc = dict()
+            if playlist_id not in data_ids:
+                print("Playlist with id %s not found. Deactivating playlist." % playlist_id)
+                if len(Storage.active_playlist_ids) - len(playlists_to_disable) > 1:
+                    playlists_to_disable.append(playlist_id)
+                continue
             playlist = data_ids[playlist_id]
             for x in playlist['tracks']:
                 if x['track']['is_local']:
@@ -109,6 +115,8 @@ def convert_tracks():
                     url = isrc_search(isrc, artists, name, x['track']['duration_ms'] / 1000, False, True)
                     Storage.add_access_url(isrc, url)
             print()
+    for playlist_id in playlists_to_disable:
+        del Storage.active_playlist_ids[playlist_id]
 
 
 def review(browser=False):

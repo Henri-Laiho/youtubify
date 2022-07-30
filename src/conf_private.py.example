@@ -1,1 +1,3 @@
 spotify_local_files_folders = [r"C:\Users\<user>\Music"]
+downloaded_audio_folder = 'C:\where\to\download\youtubified\music\files'
+playlists_export_folder = 'C:\where\to\save\exported\playlists'
