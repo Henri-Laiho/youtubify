@@ -1,8 +1,6 @@
-spotify_import.py
-youtubify.py -c
-youtubify.py -R
-download.py
-metadata.py
-playlist_export.py
-@echo off
-echo All done!
+python spotify_import.py
+python youtubify.py -c
+python youtubify.py -R
+python download.py
+python metadata.py
+python playlist_export.py
