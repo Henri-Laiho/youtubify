@@ -55,13 +55,14 @@ class YtDownload(object):
             print('Done downloading, now converting ...')
 
     def download(self, link, filename, overwrite=False):
-        fname = get_filename_ext(filename, self.outdir)
-        if fname is not None:
-            if overwrite:
-                os.remove(os.path.join(self.outdir, fname))
-            else:
-                logging.info("File already downloaded, skipping: %s" % fname)
-                return
+        if filename is not None:
+            fname = get_filename_ext(filename, self.outdir)
+            if fname is not None:
+                if overwrite:
+                    os.remove(os.path.join(self.outdir, fname))
+                else:
+                    logging.info("File already downloaded, skipping: %s" % fname)
+                    return
 
         if filename is not None:
             self.ydl_opts['outtmpl'] = os.path.join(self.outdir, filename + '.%(ext)s')
@@ -73,10 +74,12 @@ class YtDownload(object):
 
 def main():
     while True:
+        dl = YtDownload()
         print("Enter yt link:")
         link = input()
         if '/' not in link:
             break
+        dl.download(link, None)
 
 
 if __name__ == '__main__':
