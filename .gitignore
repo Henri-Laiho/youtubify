@@ -3,6 +3,7 @@
 playlists.json
 venv/
 .idea/
+.vs/
 downloaded/
 testdata/
 __pycache__/
@@ -16,3 +17,4 @@ src/conf_private.py
 *.ipynb
 /conf_playlist_export.py
 /*.log
+cut_files.*

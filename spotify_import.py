@@ -12,7 +12,7 @@ if __name__ == '__main__':
     storage_setup(args)
 
     for _ in range(3):
-        args2 = Bunch(token=Storage.spotify_token, dump='liked,playlists', format='json', file=conf.playlists_file)
+        args2 = Bunch(token=Storage.spotify_token, dump='liked,playlists,rm_dash_in_isrc', format='json', file=conf.playlists_file)
         Storage.spotify_token = spotify_backup.main(args2)
         if Storage.spotify_token is not None:
             break

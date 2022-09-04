@@ -39,6 +39,7 @@ class Storage:
     ignored_tracks = {}
     active_playlist_ids = {}
     isrc_local_downloaded_status = {}
+    playlist_compositions = {}
 
     @staticmethod
     def reset():
@@ -54,6 +55,7 @@ class Storage:
         Storage.ignored_tracks = {}
         Storage.active_playlist_ids = {}
         Storage.isrc_local_downloaded_status = {}
+        Storage.playlist_compositions = {}
 
     @staticmethod
     def load_dict(data):
@@ -72,6 +74,8 @@ class Storage:
             Storage.active_playlist_ids = data['active_playlist_ids']
         if 'isrc_local_downloaded_status' in data:
             Storage.isrc_local_downloaded_status = data['isrc_local_downloaded_status']
+        if 'playlist_compositions' in data:
+            Storage.playlist_compositions = data['playlist_compositions']
 
     @staticmethod
     def get_save_dict():
@@ -86,11 +90,12 @@ class Storage:
             'ignored_tracks': Storage.ignored_tracks,
             'active_playlist_ids': Storage.active_playlist_ids,
             'isrc_local_downloaded_status': Storage.isrc_local_downloaded_status,
+            'playlist_compositions': Storage.playlist_compositions,
         }
 
     @staticmethod
-    def set_track_data(isrc: str, artists: list, title: str):
-        Storage.isrc_to_track_data[isrc] = {'artists': artists, 'title': title}
+    def set_track_data(isrc: str, artists: list, title: str, filename: str):
+        Storage.isrc_to_track_data[isrc] = {'artists': artists, 'title': title, 'filename': filename}
 
     @staticmethod
     def add_sus_track(isrc: str, search_results=None, artists: list = None, title: str = None, code='', data=None):

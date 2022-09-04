@@ -6,13 +6,13 @@ import wget as wget
 from music_tag import Artwork, MetadataItem
 
 from src import conf
-from src.downloader import load_spotify_playlists, get_nice_path, ISRC_MAP
+from src.downloader import load_spotify_playlists, ISRC_MAP
 from src.persistance.track_data import Storage, add_storage_argparse, storage_setup
 from src.spotify.spotify_backup import SpotifyAPI
 from src.ytdownload import ensure_dir, get_filename_ext
 from youtubify import is_track_acceptable
 
-metadata_version = 3
+metadata_version = 4
 
 
 def fetch_genre_data(spotify_urls):
@@ -92,7 +92,9 @@ if __name__ == '__main__':
             track = Storage.isrc_to_track_data[isrc]
             name = track['title']
             artists = track['artists']
-            newfilename = get_nice_path(name, artists)
+            if 'filename' not in track:
+                continue
+            newfilename = track['filename']
             fnext = get_filename_ext(newfilename, conf.downloaded_audio_folder)
             newpath_ext = None
             if fnext is not None:
@@ -101,7 +103,7 @@ if __name__ == '__main__':
             if newpath_ext is not None and os.path.isfile(newpath_ext):
                 pass
             else:
-                print('\nWARNING: track "%s" missing' % (', '.join(artists) + ' - ' + name))
+                print('\nWARNING: track "%s" missing' % newfilename)
                 continue
 
             if isrc in Storage.metadata_version and Storage.metadata_version[isrc] >= metadata_version:
@@ -132,7 +134,7 @@ if __name__ == '__main__':
                          track_number=st_track['track_number'],
                          total_tracks=album['total_tracks'],
                          disc_number=st_track['disc_number'],
-                         comments=['Added %s' % (date_added + ' ' + time_added)],
+                         comments=['Added %s; isrc=%s' % (date_added + ' ' + time_added, isrc)],
                          art_files=art_files, year=release[:None if '-' not in release else release.index('-')])
 
             for x, _, _ in art_files:

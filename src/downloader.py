@@ -85,7 +85,7 @@ class DlThread(threading.Thread):
                         logging.error("%s Download Error, resetting track %s - %s:" % (self.name, filename, yt) + str(err))
                         Storage.reset_track(track[ISRC], force=True)
                         self.errors += 1
-                        if self.errors > 1000:
+                        if self.errors > conf.Flags.max_download_errors:
                             logging.critical("Maximum number if errors reached, %s exiting" % self.name)
                             break
 
@@ -147,7 +147,11 @@ def init_yt_isrc_tracks(tracks, playlists):
             continue
         track[NAME] = name
         track[ARTISTS] = artists
-        track[FILENAME] = get_nice_path(name, artists)
+        if isrc in Storage.isrc_to_track_data:
+            track[FILENAME] = Storage.isrc_to_track_data[isrc]['filename']
+        else:
+            track[FILENAME] = get_nice_path(name, artists)
+            print('Warning: using old filename: %s' % track[FILENAME])
 
 
 def download_playlist(tracks, num_threads=1):

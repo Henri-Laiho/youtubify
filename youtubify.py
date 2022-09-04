@@ -4,7 +4,7 @@ import os
 import webbrowser
 
 from src import conf
-from src.downloader import get_nice_path
+from src.downloader import get_nice_path, path_encode, nice_path_encoding
 from src.persistance.track_data import Storage, SusCode, add_storage_argparse, storage_setup, describe_track
 from src.search.Search import isrc_search, get_search_url, get_search_terms
 from src.ytdownload import get_filename_ext
@@ -53,16 +53,49 @@ def convert_tracks():
     data = json.loads(f.read())
     f.close()
 
+    playlists_to_disable = []
     data_ids = {'0' if 'id' not in plist else plist['id']: plist for plist in data}
     for playlist_id in Storage.active_playlist_ids:
         if Storage.is_active_playlist(playlist_id):
+            temp_name_to_isrc = dict()
+            if playlist_id not in data_ids:
+                print("Playlist with id %s not found. Deactivating playlist." % playlist_id)
+                if len(Storage.active_playlist_ids) - len(playlists_to_disable) > 1:
+                    playlists_to_disable.append(playlist_id)
+                continue
             playlist = data_ids[playlist_id]
             for x in playlist['tracks']:
                 if x['track']['is_local']:
                     continue
-                Storage.set_track_data(x['track']['external_ids']['isrc'],
-                                       artists=[y['name'] for y in x['track']['artists']],
-                                       title=x['track']['name'])
+                isrc = x['track']['external_ids']['isrc']
+                new_artists = [y['name'] for y in x['track']['artists']]
+                new_title = x['track']['name']
+                new_name = get_nice_path(new_title, new_artists)
+                if new_name.lower() in temp_name_to_isrc:
+                    print('Duplicate names: %s. Adding album name.' % new_name)
+                    new_album = path_encode(x['track']['album']['name'], nice_path_encoding)
+                    albumname = "%s {%s}" % (new_name, new_album)
+                    if albumname.lower() in temp_name_to_isrc:
+                        isrcname = "%s{%s}" % (albumname, isrc)
+                        if isrcname.lower() in temp_name_to_isrc:
+                            print('ERROR: duplicate artist, title, album and isrc: %s. Ignoring duplicate.' % isrcname)
+                            continue
+                        albumname = isrcname
+                    new_name = albumname
+                temp_name_to_isrc[new_name.lower()] = isrc
+
+                if isrc in Storage.isrc_to_track_data and 'filename' in Storage.isrc_to_track_data[isrc]:
+                    old_name = Storage.isrc_to_track_data[isrc]['filename']
+                    if old_name != new_name:
+                        old_filename = get_filename_ext(old_name, conf.downloaded_audio_folder)
+                        if old_filename is not None:
+                            new_filename = new_name + old_filename[old_filename.rindex('.'):]
+                            old_path = os.path.join(conf.downloaded_audio_folder, old_filename)
+                            new_path = os.path.join(conf.downloaded_audio_folder, new_filename)
+                            if old_path != new_path:
+                                print('Names changed: renaming file "%s" to "%s"' % (old_filename, new_filename))
+                                os.rename(old_path, new_path)
+                Storage.set_track_data(isrc, artists=new_artists, title=new_title, filename=new_name)
 
             i = 0
             tracks = playlist['tracks'][:]
@@ -82,6 +115,8 @@ def convert_tracks():
                     url = isrc_search(isrc, artists, name, x['track']['duration_ms'] / 1000, False, True)
                     Storage.add_access_url(isrc, url)
             print()
+    for playlist_id in playlists_to_disable:
+        del Storage.active_playlist_ids[playlist_id]
 
 
 def review(browser=False):
@@ -158,7 +193,7 @@ def reset_track():
 
                     if isrc in Storage.isrc_to_track_data:
                         data = Storage.isrc_to_track_data[isrc]
-                        newfilename = get_nice_path(data['title'], data['artists'])
+                        newfilename = data['filename']
                         fname_ext = get_filename_ext(newfilename, conf.downloaded_audio_folder)
                         if fname_ext is not None:
                             newpath_ext = os.path.join(conf.downloaded_audio_folder, fname_ext)
@@ -184,15 +219,68 @@ def list_manual():
     print("Total %d manually confirmed tracks" % i)
 
 
-def list_playlists(data=None):
+def is_active(plist):
+    return Storage.is_active_playlist('0' if 'id' not in plist else plist['id'])
+
+
+def list_playlists(data=None, condition=is_active):
     if data is None:
         f = open(conf.playlists_file, "r")
         data = json.loads(f.read())
         f.close()
     for i, plist in enumerate(data):
-        print('%4d' % i, '+' if Storage.is_active_playlist('0' if 'id' not in plist else plist['id']) else ' ',
+        print('%4d' % i, '+' if condition(plist) else ' ',
               plist['name'])
     return data
+
+
+def list_playlist_comps():
+    data = []
+    for i, plist in enumerate(Storage.playlist_compositions.keys()):
+        print('%4d' % i, plist)
+        data.append(plist)
+    return data
+
+
+def compose_playlists():
+    data = None
+    while 1:
+        comps = list_playlist_comps()
+        name = input('Enter playlist composition name to edit or create composition, or q to exit: ')
+        if name == '' or name == 'q':
+            break
+        try:
+            name = comps[int(name)]
+        except ValueError:
+            pass
+        if name in Storage.playlist_compositions:
+            comp = Storage.playlist_compositions[name]
+        else:
+            comp = {}
+
+        while 1:
+            def is_in_comp(plist):
+                id = '0' if 'id' not in plist else plist['id']
+                return id in comp
+            print('Editing playlist composition "%s"' % name)
+            data = list_playlists(data, condition=is_in_comp)
+            idx = input('Select playlist to toggle or enter q to exit or enter "delete" to delete the composition: ')
+            if idx == '' or idx == 'q':
+                Storage.playlist_compositions[name] = comp
+                break
+            elif idx == 'delete':
+                del Storage.playlist_compositions[name]
+                break
+            try:
+                playlist = data[int(idx)]
+                id_code = '0' if 'id' not in playlist else playlist['id']
+                if id_code in comp:
+                    del comp[id_code]
+                else:
+                    comp[id_code] = True
+            except ValueError:
+                print('Invalid input')
+        
 
 
 if __name__ == '__main__':
@@ -207,6 +295,7 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--list', action='store_true', help='List available playlists with activation status',
                         default=False)
     parser.add_argument('--lsman', action='store_true', help='List manually confirmed tracks', default=False)
+    parser.add_argument('--compose', action='store_true', help='Make compositions of multiple playlists', default=False)
     parser.add_argument('-a', '--activate', type=int,
                         help='Activate playlist for spotify to youtube synchronization, ' +
                              'use "youtubify -l" to list available playlists', default=None)
@@ -254,6 +343,10 @@ if __name__ == '__main__':
         reset_track()
         Storage.save()
         print('Data saved.')
+    elif args.compose:
+        compose_playlists()
+        Storage.save()
+        print('Data saved.')
     else:
         state = 0
         playlist = None
@@ -266,6 +359,7 @@ if __name__ == '__main__':
                 print('3a - Review sus tracks while automatically opening youtube pages')
                 print('4 - Reset confirmed track')
                 print('5 - List manually confirmed tracks')
+                print('6 - Edit playlist compositions')
                 print('q - Exit')
                 act = input('Select: ')
                 if act == '1':
@@ -282,6 +376,8 @@ if __name__ == '__main__':
                     state = 4
                 elif act == '5':
                     state = 5
+                elif act == '6':
+                    state = 6
                 elif act == 'q':
                     state = -1
             if state == 1:
@@ -317,6 +413,11 @@ if __name__ == '__main__':
                 state = 0
             elif state == 5:
                 list_manual()
+                state = 0
+            elif state == 6:
+                compose_playlists()
+                Storage.save()
+                print('Data saved.')
                 state = 0
             print()
         Storage.save()
