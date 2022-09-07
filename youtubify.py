@@ -311,20 +311,14 @@ if __name__ == '__main__':
     elif args.lsman:
         list_manual()
         quit()
-    elif args.activate is not None:
-        f = open(conf.playlists_file, "r")
-        data = json.loads(f.read())
-        f.close()
-        playlist = data[args.activate]
+
+    elif args.activate is not None or args.deactivate is not None:
+        with open(conf.playlists_file, "r") as f:
+            data = json.loads(f.read())
+        selected_playlist, make_active = (args.activate, True) if args.activate else (args.deactivate, False)
+        playlist = data[selected_playlist]
         id_code = '0' if 'id' not in playlist else playlist['id']
-        Storage.set_active_playlist(id_code, True)
-    elif args.deactivate is not None:
-        f = open(conf.playlists_file, "r")
-        data = json.loads(f.read())
-        f.close()
-        playlist = data[args.deactivate]
-        id_code = '0' if 'id' not in playlist else playlist['id']
-        Storage.set_active_playlist(id_code, False)
+        Storage.set_active_playlist(id_code, make_active)
     elif args.convert:
         convert_tracks()
     elif args.review:
