@@ -1,4 +1,6 @@
 import logging
+from termcolor import colored, cprint
+from sys import prefix
 
 import youtube_dl
 import os
@@ -19,20 +21,27 @@ def ensure_dir(directory):
 
 
 class DlLogger(object):
+    def __init__(self, logger_color=None) -> None:
+        self.logger_color = logger_color
+
+    def printmsg(self, level, msg):
+        cprint(f"[{level}] {msg}", self.logger_color)
+
     def debug(self, msg):
-        print("[debug]", msg)
-        pass
+        self.printmsg("debug", msg)
 
     def warning(self, msg):
-        print("[warning]", msg)
-        pass
+        self.printmsg("warning", msg)
 
     def error(self, msg):
-        print("[error]", msg)
+        self.printmsg("error", msg)
+
+    def info(self, msg):
+        self.printmsg("info", msg)
 
 
 class YtDownload(object):
-    def __init__(self, outDir='downloaded'):
+    def __init__(self, outDir='downloaded', logger_color=None):
         self.outdir = outDir
         self.outtempl = os.path.join(outDir, '%(title)s.%(ext)s')
 
@@ -42,7 +51,7 @@ class YtDownload(object):
             'audio-format': 'best',
             'socket_timeout': 5,
             'retries': 5,
-            'logger': DlLogger(),
+            'logger': DlLogger(logger_color),
             'progress_hooks': [self.msg_hook],
             'outtmpl': self.outtempl,
             'postprocessors': [{

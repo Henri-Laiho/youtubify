@@ -47,6 +47,16 @@ nice_path_encoding = {
     '%': '',
 }
 
+colors = [
+    'grey',
+    'red',
+    'green',
+    'yellow',
+    'blue',
+    'magenta',
+    'cyan',
+    'white'
+]
 
 class DlThread(threading.Thread):
     def __init__(self, threadID, name, q, queueLock, checkExit):
@@ -56,7 +66,7 @@ class DlThread(threading.Thread):
         self.q = q
         self.queueLock = queueLock
         self.checkExit = checkExit
-        self.downloader = YtDownload(outDir=conf.downloaded_audio_folder)
+        self.downloader = YtDownload(outDir=conf.downloaded_audio_folder, logger_color=colors[threadID%len(colors)])
         self.errors = 0
 
     def run(self):
