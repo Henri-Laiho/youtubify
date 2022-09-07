@@ -280,14 +280,14 @@ def compose_playlists():
                     comp[id_code] = True
             except ValueError:
                 print('Invalid input')
-        
+
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     add_storage_argparse(parser)
 
-    parser.add_argument('-c', '--convert', action='store_true', help='Convert playlists to youtube', default=False)
+    parser.add_argument('-c', '--convert', action='store_true', help='Convert playlists to youtube links', default=False)
     parser.add_argument('-s', '--reset', action='store_true', help='Reset confirmed track', default=False)
     parser.add_argument('-r', '--review', action='store_true', help='Review sus tracks', default=False)
     parser.add_argument('-R', '--review_browser', action='store_true',
