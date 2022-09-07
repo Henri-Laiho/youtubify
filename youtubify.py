@@ -311,11 +311,13 @@ if __name__ == '__main__':
     elif args.lsman:
         list_manual()
         quit()
-
+    elif args.activate is not None and args.deactivate is not None:
+        print("Conflicting wishes from the user: cannot add and remove playlists from selection at the same time.")
+        quit()
     elif args.activate is not None or args.deactivate is not None:
         with open(conf.playlists_file, "r") as f:
             data = json.loads(f.read())
-        selected_playlist, make_active = (args.activate, True) if args.activate else (args.deactivate, False)
+        selected_playlist, make_active = (args.activate, True) if args.activate is not None else (args.deactivate, False)
         playlist = data[selected_playlist]
         id_code = '0' if 'id' not in playlist else playlist['id']
         Storage.set_active_playlist(id_code, make_active)
