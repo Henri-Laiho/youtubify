@@ -307,8 +307,10 @@ if __name__ == '__main__':
 
     if args.list:
         list_playlists()
+        quit()
     elif args.lsman:
         list_manual()
+        quit()
     elif args.activate is not None:
         f = open(conf.playlists_file, "r")
         data = json.loads(f.read())
@@ -316,8 +318,6 @@ if __name__ == '__main__':
         playlist = data[args.activate]
         id_code = '0' if 'id' not in playlist else playlist['id']
         Storage.set_active_playlist(id_code, True)
-        Storage.save()
-        print('Data saved.')
     elif args.deactivate is not None:
         f = open(conf.playlists_file, "r")
         data = json.loads(f.read())
@@ -325,28 +325,16 @@ if __name__ == '__main__':
         playlist = data[args.deactivate]
         id_code = '0' if 'id' not in playlist else playlist['id']
         Storage.set_active_playlist(id_code, False)
-        Storage.save()
-        print('Data saved.')
     elif args.convert:
         convert_tracks()
-        Storage.save()
-        print('Data saved.')
     elif args.review:
         review()
-        Storage.save()
-        print('Data saved.')
     elif args.review_browser:
         review(True)
-        Storage.save()
-        print('Data saved.')
     elif args.reset:
         reset_track()
-        Storage.save()
-        print('Data saved.')
     elif args.compose:
         compose_playlists()
-        Storage.save()
-        print('Data saved.')
     else:
         state = 0
         playlist = None
@@ -393,32 +381,23 @@ if __name__ == '__main__':
                         Storage.set_active_playlist(id_code, not Storage.is_active_playlist(id_code))
                     except ValueError:
                         print('Invalid input')
-                Storage.save()
-                print('Data saved.')
                 state = 0
             elif state == 2:
                 convert_tracks()
-                Storage.save()
-                print('Data saved.')
                 state = 0
             elif state == 3:
                 review(browser)
-                Storage.save()
-                print('Data saved.')
                 state = 0
             elif state == 4:
                 reset_track()
-                Storage.save()
-                print('Data saved.')
                 state = 0
             elif state == 5:
                 list_manual()
                 state = 0
+                quit()
             elif state == 6:
                 compose_playlists()
-                Storage.save()
-                print('Data saved.')
                 state = 0
             print()
-        Storage.save()
-        print('Data saved.')
+    Storage.save()
+    print('Data saved.')
