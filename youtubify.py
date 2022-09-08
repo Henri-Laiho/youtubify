@@ -1,4 +1,5 @@
 import argparse
+import click
 import json
 import os
 import webbrowser
@@ -8,6 +9,11 @@ from src.downloader import get_nice_path, path_encode, nice_path_encoding
 from src.persistance.track_data import Storage, SusCode, add_storage_argparse, storage_setup, describe_track
 from src.search.Search import isrc_search, get_search_url, get_search_terms
 from src.ytdownload import get_filename_ext
+
+
+@click.group()
+def cli():
+    pass
 
 
 def is_track_acceptable(isrc):
@@ -48,6 +54,7 @@ def search_track(max_results=100):
         print('No tracks match search.')
 
 
+@cli.command("convert")
 def convert_tracks():
     f = open(conf.playlists_file, "r")
     data = json.loads(f.read())
@@ -119,6 +126,8 @@ def convert_tracks():
         del Storage.active_playlist_ids[playlist_id]
 
 
+@cli.command()
+@click.option("--browser", default=True, help="Review links in browser")
 def review(browser=False):
     state = 3
     added = []
@@ -172,6 +181,7 @@ def review(browser=False):
         Storage.confirm(isrc)
 
 
+@cli.command("reset")
 def reset_track():
     tracks = search_track()
     if tracks is None:
@@ -209,6 +219,7 @@ def reset_track():
                 print('Invalid input')
 
 
+@cli.command("lsman")
 def list_manual():
     print("Manually confirmed tracks:")
     i = 0
@@ -223,6 +234,7 @@ def is_active(plist):
     return Storage.is_active_playlist('0' if 'id' not in plist else plist['id'])
 
 
+@cli.command("list")
 def list_playlists(data=None, condition=is_active):
     if data is None:
         f = open(conf.playlists_file, "r")
@@ -242,6 +254,7 @@ def list_playlist_comps():
     return data
 
 
+@cli.command("compose")
 def compose_playlists():
     data = None
     while 1:
@@ -257,6 +270,7 @@ def compose_playlists():
             comp = Storage.playlist_compositions[name]
         else:
             comp = {}
+
 
         while 1:
             def is_in_comp(plist):
@@ -287,15 +301,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     add_storage_argparse(parser)
 
-    parser.add_argument('-c', '--convert', action='store_true', help='Convert playlists to youtube links', default=False)
-    parser.add_argument('-s', '--reset', action='store_true', help='Reset confirmed track', default=False)
-    parser.add_argument('-r', '--review', action='store_true', help='Review sus tracks', default=False)
-    parser.add_argument('-R', '--review_browser', action='store_true',
-                        help='Review sus tracks while automatically opening youtube pages', default=False)
-    parser.add_argument('-l', '--list', action='store_true', help='List available playlists with activation status',
-                        default=False)
-    parser.add_argument('--lsman', action='store_true', help='List manually confirmed tracks', default=False)
-    parser.add_argument('--compose', action='store_true', help='Make compositions of multiple playlists', default=False)
     parser.add_argument('-a', '--activate', type=int,
                         help='Activate playlist for spotify to youtube synchronization, ' +
                              'use "youtubify -l" to list available playlists', default=None)
@@ -304,14 +309,8 @@ if __name__ == '__main__':
                              'use "youtubify -l" to list available playlists', default=None)
     args = parser.parse_args()
     storage_setup(args)
-
-    if args.list:
-        list_playlists()
-        quit()
-    elif args.lsman:
-        list_manual()
-        quit()
-    elif args.activate is not None and args.deactivate is not None:
+    cli()
+    if args.activate is not None and args.deactivate is not None:
         print("Conflicting wishes from the user: cannot add and remove playlists from selection at the same time.")
         quit()
     elif args.activate is not None or args.deactivate is not None:
@@ -321,16 +320,6 @@ if __name__ == '__main__':
         playlist = data[selected_playlist]
         id_code = '0' if 'id' not in playlist else playlist['id']
         Storage.set_active_playlist(id_code, make_active)
-    elif args.convert:
-        convert_tracks()
-    elif args.review:
-        review()
-    elif args.review_browser:
-        review(True)
-    elif args.reset:
-        reset_track()
-    elif args.compose:
-        compose_playlists()
     else:
         state = 0
         playlist = None
