@@ -43,6 +43,6 @@ if __name__ == '__main__':
                 new_tracks.append(track)
         tracks = new_tracks
 
-    download_playlist(tracks, num_threads=16)
+    download_playlist(tracks, num_threads=16, log_handler=console)
 
     Storage.save()
