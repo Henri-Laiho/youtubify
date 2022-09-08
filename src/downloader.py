@@ -4,6 +4,7 @@ import os
 from queue import Queue
 import threading
 import time
+import colorama
 
 import youtube_dl
 
@@ -17,22 +18,7 @@ ISRC = 'isrc'
 ARTISTS = 'artists'
 NAME = 'name'
 FILENAME = 'filename'
-playlists_file = os.path.join("spotify", "playlists.json")
 download_version = 1
-
-encoder = '@'
-path_encoding = {
-    '\\': encoder + '5C',
-    '/': encoder + '2F',
-    ':': encoder + '3A',
-    '*': encoder + '2A',
-    '?': encoder + '3F',
-    '"': encoder + '22',
-    '<': encoder + '3C',
-    '>': encoder + '3E',
-    '|': encoder + '7C',
-    '%': encoder + '25'
-}
 
 nice_path_encoding = {
     '\\': '',
@@ -48,25 +34,34 @@ nice_path_encoding = {
 }
 
 colors = [
-    'grey',
-    'red',
-    'green',
-    'yellow',
-    'blue',
-    'magenta',
-    'cyan',
-    'white'
+    colorama.Fore.LIGHTBLACK_EX,
+    colorama.Fore.LIGHTGREEN_EX,
+    colorama.Fore.LIGHTBLUE_EX,
+    colorama.Fore.LIGHTMAGENTA_EX,
+    colorama.Fore.LIGHTYELLOW_EX,
+    colorama.Fore.CYAN,
+    colorama.Fore.GREEN,
+    colorama.Fore.WHITE,
+    colorama.Fore.YELLOW,
+    colorama.Fore.MAGENTA,
+    colorama.Fore.BLUE,
 ]
 
+
 class DlThread(threading.Thread):
-    def __init__(self, threadID, name, q, queueLock, checkExit):
+    def __init__(self, threadID, name, q, queueLock, checkExit, update_status_callback):
         threading.Thread.__init__(self)
         self.threadID = threadID
         self.name = name
         self.q = q
         self.queueLock = queueLock
         self.checkExit = checkExit
-        self.downloader = YtDownload(outDir=conf.downloaded_audio_folder, logger_color=colors[threadID%len(colors)])
+        self.log = logging.Logger(name, level=logging.INFO)
+        console = logging.StreamHandler()
+        color = colors[threadID % len(colors)]
+        console.setFormatter(logging.Formatter(fmt=color+f"[%(levelname)s] {name} - %(message)s"+colorama.Fore.RESET))
+        self.log.addHandler(console)
+        self.downloader = YtDownload(outDir=conf.downloaded_audio_folder, logger=self.log, update_status_callback=lambda data: update_status_callback(threadID, data))
         self.errors = 0
 
     def run(self):
@@ -87,7 +82,7 @@ class DlThread(threading.Thread):
                     yt = track[YT]
                     isrc = track[ISRC]
                     filename = track[FILENAME]
-                    logging.info("%s processing %s, about %d remaining (%s)" % (self.name, filename, size, yt))
+                    logging.info("%s processing %s (%s)" % (self.name, filename, yt))
                     try:
                         self.downloader.download(yt, filename=filename)
                         Storage.isrc_local_downloaded_status[isrc] = download_version
@@ -110,10 +105,6 @@ def path_encode(path, encoding):
     return path
 
 
-# def get_raw_path(name, artists):
-#    return path_encode(', '.join(['%s' % artist for artist in artists]) + ' - %s' % name, path_encoding)
-
-
 def get_nice_path(name, artists):
     if len(artists) > 0 and artists[0]:
         return path_encode(artists[0] + ' - ' + name, nice_path_encoding)
@@ -121,7 +112,7 @@ def get_nice_path(name, artists):
         return path_encode(name, nice_path_encoding)
 
 
-def load_spotify_playlists(file=playlists_file):
+def load_spotify_playlists(file):
     f = open(file, "r")
     data = json.loads(f.read())
     for playlist in data:
@@ -164,6 +155,9 @@ def init_yt_isrc_tracks(tracks, playlists):
             print('Warning: using old filename: %s' % track[FILENAME])
 
 
+cursor_up = lambda lines: '\x1b[{0}A'.format(lines)
+cursor_down = lambda lines: '\x1b[{0}B'.format(lines)
+
 def download_playlist(tracks, num_threads=1):
     exitFlag = 0
     threadList = ["Thread-" + str(i + 1) for i in range(num_threads)]
@@ -171,16 +165,44 @@ def download_playlist(tracks, num_threads=1):
     workQueue = Queue()
     threads = []
     threadID = 1
-
+    thread_status_lock = threading.Lock()
+    last_status = {'print_time' : 0}
+    thread_statuses = {-1 : {'_eta_str': '0s', '_percent_str': '  0.0%', '_speed_str': '  0B/s', '_total_bytes_str': '0B', 'filename': '', 'status': ''}}
+    
     def checkExit():
         return exitFlag
 
+    def print_statuses():
+        queueLock.acquire()
+        lines = ['Downloading: (+%d more in queue)' % workQueue.qsize()]
+        queueLock.release()
+        for id, d in thread_statuses.items():
+            if d['status'] == 'downloading':
+                fname = d['filename'][len(conf.downloaded_audio_folder):]
+                lines.append('%d. %s / %s @ %s, ETA %s %s, ' % (id, d['_percent_str'], d['_total_bytes_str'], d['_speed_str'], d['_eta_str'], fname[:60]))
+        lines.append('Total download speed: %.2fKiB/s\r' % (sum([thread_statuses[x+1]['speed'] for x in range(num_threads) if 'speed' in thread_statuses[x+1]])/1024))
+        print('\n'.join(lines))
+        print('\r', end='')
+        print(cursor_up(len(lines)), end='')
+
+    def update_status(id, data):
+        thread_status_lock.acquire()
+        thread_statuses[id] = data
+        t = time.time_ns()
+        if t-last_status['print_time'] > 10e8:
+            last_status['print_time'] = t
+            print_statuses()
+        thread_status_lock.release()
+
     # Create new threads
     for tName in threadList:
-        thread = DlThread(threadID, tName, workQueue, queueLock, checkExit)
+        thread = DlThread(threadID, tName, workQueue, queueLock, checkExit, update_status)
         thread.start()
         threads.append(thread)
+        thread_statuses[threadID] = thread_statuses[-1]
         threadID += 1
+    del thread_statuses[-1]
+
 
     # Fill the queue
     queueLock.acquire()

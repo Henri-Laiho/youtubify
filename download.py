@@ -1,5 +1,6 @@
 import argparse
 import logging
+import colorama
 
 from src import conf
 from src.downloader import load_spotify_playlists, init_yt_isrc_tracks, download_playlist, YT, ISRC, download_version
@@ -13,6 +14,8 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verify', action='store_true', help='Verify all files exist', default=False)
     args = parser.parse_args()
     storage_setup(args)
+
+    colorama.init()
 
     logging.basicConfig(filename='ldownload.log',
                         format="%(asctime)s [%(levelname)s] - %(message)s",
@@ -40,6 +43,6 @@ if __name__ == '__main__':
                 new_tracks.append(track)
         tracks = new_tracks
 
-    download_playlist(tracks, num_threads=8)
+    download_playlist(tracks, num_threads=16)
 
     Storage.save()

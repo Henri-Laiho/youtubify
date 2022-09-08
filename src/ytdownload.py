@@ -1,5 +1,4 @@
 import logging
-from termcolor import colored, cprint
 from sys import prefix
 
 import youtube_dl
@@ -20,30 +19,13 @@ def ensure_dir(directory):
         os.makedirs(directory)
 
 
-class DlLogger(object):
-    def __init__(self, logger_color=None) -> None:
-        self.logger_color = logger_color
-
-    def printmsg(self, level, msg):
-        cprint(f"[{level}] {msg}", self.logger_color)
-
-    def debug(self, msg):
-        self.printmsg("debug", msg)
-
-    def warning(self, msg):
-        self.printmsg("warning", msg)
-
-    def error(self, msg):
-        self.printmsg("error", msg)
-
-    def info(self, msg):
-        self.printmsg("info", msg)
-
-
 class YtDownload(object):
-    def __init__(self, outDir='downloaded', logger_color=None):
+    def __init__(self, outDir='downloaded', name='downloader', logger=logging.getLogger(''), update_status_callback=None):
         self.outdir = outDir
+        self.name = name
         self.outtempl = os.path.join(outDir, '%(title)s.%(ext)s')
+        self.logger = logger
+        self.update_status_callback = update_status_callback
 
         ensure_dir(outDir)
 
@@ -51,7 +33,7 @@ class YtDownload(object):
             'audio-format': 'best',
             'socket_timeout': 5,
             'retries': 5,
-            'logger': DlLogger(logger_color),
+            'logger': logger,
             'progress_hooks': [self.msg_hook],
             'outtmpl': self.outtempl,
             'postprocessors': [{
@@ -59,9 +41,15 @@ class YtDownload(object):
             }]
         }
 
+
     def msg_hook(self, d):
-        if d['status'] == 'finished':
-            print('Done downloading, now converting ...')
+        if self.update_status_callback:
+            self.update_status_callback(d)
+        elif d['status'] == 'finished':
+            self.logger.info('Done downloading, now converting ...')
+        elif d['status'] == 'downloading':
+            self.logger.info('downloading %s of %s @%s, ETA %s' % (d['_percent_str'], d['_total_bytes_str'], d['_speed_str'], d['_eta_str']))
+
 
     def download(self, link, filename, overwrite=False):
         if filename is not None:
@@ -70,9 +58,8 @@ class YtDownload(object):
                 if overwrite:
                     os.remove(os.path.join(self.outdir, fname))
                 else:
-                    logging.info("File already downloaded, skipping: %s" % fname)
+                    self.logger.info("File already downloaded, skipping: %s" % fname)
                     return
-
         if filename is not None:
             self.ydl_opts['outtmpl'] = os.path.join(self.outdir, filename + '.%(ext)s')
         with youtube_dl.YoutubeDL(self.ydl_opts) as ydl:
@@ -82,6 +69,8 @@ class YtDownload(object):
 
 
 def main():
+    logging.getLogger('').setLevel(logging.NOTSET)
+    logging.getLogger('').addHandler(logging.StreamHandler())
     while True:
         dl = YtDownload()
         print("Enter yt link:")

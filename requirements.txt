@@ -5,4 +5,4 @@ setuptools
 wget
 levenshtein
 music-tag
-termcolor
+colorama
