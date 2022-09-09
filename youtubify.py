@@ -296,93 +296,57 @@ def compose_playlists():
                 print('Invalid input')
 
 
+@cli.command("activate")
+@click.argument('playlist_number')
+def activate_playlist(playlist_number):
+    toggle_playlist(playlist_number, True)
+
+
+@cli.command("deactivate")
+@click.argument('playlist_number')
+def deactivate_playlist(playlist_number):
+    toggle_playlist(playlist_number, False)
+
+def toggle_playlist(selected_playlist, make_active):
+    with open(conf.playlists_file, "r") as f:
+        data = json.loads(f.read())
+    playlist = data[selected_playlist]
+    id_code = '0' if 'id' not in playlist else playlist['id']
+    Storage.set_active_playlist(id_code, make_active)
+
+
+@cli.command()
+def interactive():
+    state = 0
+    playlist = None
+    browser = False
+    while state > -1:
+        if state == 0:
+            print('1 - Toggle active playlists')
+            print('q - Exit')
+            act = input('Select: ')
+            if act == '1':
+                state = 1
+            elif act == 'q':
+                state = -1
+        if state == 1:
+            data = None
+            while 1:
+                data = list_playlists(data)
+                idx = input('Select playlist to toggle or enter q to exit: ')
+                if idx == '' or idx == 'q':
+                    break
+                try:
+                    playlist = data[int(idx)]
+                    id_code = '0' if 'id' not in playlist else playlist['id']
+                    Storage.set_active_playlist(id_code, not Storage.is_active_playlist(id_code))
+                except ValueError:
+                    print('Invalid input')
+            state = 0
+        print()
+
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    add_storage_argparse(parser)
-
-    parser.add_argument('-a', '--activate', type=int,
-                        help='Activate playlist for spotify to youtube synchronization, ' +
-                             'use "youtubify -l" to list available playlists', default=None)
-    parser.add_argument('-d', '--deactivate', type=int,
-                        help='Deactivate playlist from spotify to youtube synchronization, ' +
-                             'use "youtubify -l" to list available playlists', default=None)
-    args = parser.parse_args()
-    storage_setup(args)
     cli()
-    if args.activate is not None and args.deactivate is not None:
-        print("Conflicting wishes from the user: cannot add and remove playlists from selection at the same time.")
-        quit()
-    elif args.activate is not None or args.deactivate is not None:
-        with open(conf.playlists_file, "r") as f:
-            data = json.loads(f.read())
-        selected_playlist, make_active = (args.activate, True) if args.activate is not None else (args.deactivate, False)
-        playlist = data[selected_playlist]
-        id_code = '0' if 'id' not in playlist else playlist['id']
-        Storage.set_active_playlist(id_code, make_active)
-    else:
-        state = 0
-        playlist = None
-        browser = False
-        while state > -1:
-            if state == 0:
-                print('1 - Toggle active playlists')
-                print('2 - Convert playlists to youtube')
-                print('3 - Review sus tracks')
-                print('3a - Review sus tracks while automatically opening youtube pages')
-                print('4 - Reset confirmed track')
-                print('5 - List manually confirmed tracks')
-                print('6 - Edit playlist compositions')
-                print('q - Exit')
-                act = input('Select: ')
-                if act == '1':
-                    state = 1
-                elif act == '2':
-                    state = 2
-                elif act == '3':
-                    state = 3
-                    browser = False
-                elif act == '3a':
-                    state = 3
-                    browser = True
-                elif act == '4':
-                    state = 4
-                elif act == '5':
-                    state = 5
-                elif act == '6':
-                    state = 6
-                elif act == 'q':
-                    state = -1
-            if state == 1:
-                data = None
-                while 1:
-                    data = list_playlists(data)
-                    idx = input('Select playlist to toggle or enter q to exit: ')
-                    if idx == '' or idx == 'q':
-                        break
-                    try:
-                        playlist = data[int(idx)]
-                        id_code = '0' if 'id' not in playlist else playlist['id']
-                        Storage.set_active_playlist(id_code, not Storage.is_active_playlist(id_code))
-                    except ValueError:
-                        print('Invalid input')
-                state = 0
-            elif state == 2:
-                convert_tracks()
-                state = 0
-            elif state == 3:
-                review(browser)
-                state = 0
-            elif state == 4:
-                reset_track()
-                state = 0
-            elif state == 5:
-                list_manual()
-                state = 0
-                quit()
-            elif state == 6:
-                compose_playlists()
-                state = 0
-            print()
     Storage.save()
     print('Data saved.')
