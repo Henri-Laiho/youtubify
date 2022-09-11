@@ -1,15 +1,14 @@
 import argparse
 
 from src import conf
-from src.persistance.track_data import Storage, storage_setup, add_storage_argparse
+from src.persistance.track_data import Storage, storage_setup
 from src.spotify import spotify_backup
 from src.utils.bunch import Bunch
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    add_storage_argparse(parser)
     args = parser.parse_args()
-    storage_setup(args)
+    storage_setup()
 
     for _ in range(3):
         args2 = Bunch(token=Storage.spotify_token, dump='liked,playlists,rm_dash_in_isrc', format='json', file=conf.playlists_file)

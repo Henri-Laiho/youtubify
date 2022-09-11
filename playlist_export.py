@@ -12,7 +12,7 @@ except ImportError:
     print('Copy conf_playlist_export.py.example to conf_playlist_export.py and modify if needed.')
     exit(-1)
 from src import conf, downloader
-from src.persistance.track_data import add_storage_argparse, storage_setup, Storage
+from src.persistance.track_data import storage_setup, Storage
 from src.ytdownload import ensure_dir, get_filename_ext
 
 try:
@@ -90,10 +90,9 @@ def add_compositions(playlists):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    add_storage_argparse(parser)
     parser.add_argument('--no_local', action='store_true', help='don\'t include local files', default=False)
     args = parser.parse_args()
-    storage_setup(args)
+    storage_setup()
     no_local = args.no_local
 
     f = open(conf.playlists_file, "r")

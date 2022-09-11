@@ -1,4 +1,5 @@
 import argparse
+from ast import arg
 import click
 import json
 import os
@@ -6,7 +7,7 @@ import webbrowser
 
 from src import conf
 from src.downloader import get_nice_path, path_encode, nice_path_encoding
-from src.persistance.track_data import Storage, SusCode, add_storage_argparse, storage_setup, describe_track
+from src.persistance.track_data import Storage, SusCode, storage_setup, describe_track
 from src.search.Search import isrc_search, get_search_url, get_search_terms
 from src.ytdownload import get_filename_ext
 
@@ -363,6 +364,7 @@ def interactive():
 
 
 if __name__ == '__main__':
+    storage_setup()
     cli()
     Storage.save()
     print('Data saved.')
