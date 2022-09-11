@@ -318,15 +318,33 @@ def toggle_playlist(selected_playlist, make_active):
 @cli.command()
 def interactive():
     state = 0
-    playlist = None
-    browser = False
     while state > -1:
         if state == 0:
             print('1 - Toggle active playlists')
+            print('2 - Convert playlists to youtube')
+            print('3 - Review sus tracks')
+            print('3a - Review sus tracks while automatically opening youtube pages')
+            print('4 - Reset confirmed track')
+            print('5 - List manually confirmed tracks')
+            print('6 - Edit playlist compositions')
             print('q - Exit')
             act = input('Select: ')
             if act == '1':
                 state = 1
+            elif act == '2':
+                state = 2
+            elif act == '3':
+                state = 3
+                browser = False
+            elif act == '3a':
+                state = 3
+                browser = True
+            elif act == '4':
+                state = 4
+            elif act == '5':
+                state = 5
+            elif act == '6':
+                state = 6
             elif act == 'q':
                 state = -1
         if state == 1:
@@ -342,8 +360,6 @@ def interactive():
                     Storage.set_active_playlist(id_code, not Storage.is_active_playlist(id_code))
                 except ValueError:
                     print('Invalid input')
-            state = 0
-        print()
 
 
 if __name__ == '__main__':
