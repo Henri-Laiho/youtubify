@@ -20,18 +20,6 @@ NAME = 'name'
 FILENAME = 'filename'
 download_version = 1
 
-nice_path_encoding = {
-    '\\': '',
-    '/': '',
-    ':': '',
-    '*': '',
-    '?': '',
-    '"': '\'',
-    '<': '',
-    '>': '',
-    '|': '',
-    '%': '',
-}
 
 colors = [
     colorama.Fore.LIGHTBLACK_EX,
@@ -97,19 +85,6 @@ class DlThread(threading.Thread):
             else:
                 self.queueLock.release()
             time.sleep(0.01)
-
-
-def path_encode(path, encoding):
-    for key in encoding:
-        path = path.replace(key, encoding[key])
-    return path
-
-
-def get_nice_path(name, artists):
-    if len(artists) > 0 and artists[0]:
-        return path_encode(artists[0] + ' - ' + name, nice_path_encoding)
-    else:
-        return path_encode(name, nice_path_encoding)
 
 
 def load_spotify_playlists(file):

@@ -4,10 +4,10 @@ import os
 import webbrowser
 
 from src import conf
-from src.downloader import get_nice_path, path_encode, nice_path_encoding
 from src.persistance.track_data import Storage, SusCode, add_storage_argparse, storage_setup, describe_track
 from src.search.Search import isrc_search, get_search_url, get_search_terms
 from src.ytdownload import get_filename_ext
+from src.track import Track
 
 
 def is_track_acceptable(isrc):
@@ -22,6 +22,10 @@ def is_track_acceptable(isrc):
         return False
     else:
         return True
+
+
+def get_track_duration_s(track):
+    return track['track']['duration_ms'] / 1000
 
 
 def matches(track_data, keyword):
@@ -48,7 +52,68 @@ def search_track(max_results=100):
         print('No tracks match search.')
 
 
-def convert_tracks():
+def store_track_data(track : Track, temp_name_to_isrc):
+    if track.is_local:
+        return
+    if is_filename_unique(track, temp_name_to_isrc):
+        print('Duplicate names: %s. Adding album name.' % track.filename)
+        track.add_album_name_to_filename()
+    if is_filename_unique(track, temp_name_to_isrc):
+        track.add_album_and_isrc_to_filename
+    if is_filename_unique(track, temp_name_to_isrc):
+        print('ERROR: duplicate artist, title, album and isrc: %s. Ignoring duplicate.' % track.filename)
+        return
+    temp_name_to_isrc[track.filename.lower()] = track.isrc
+
+    if track.isrc in Storage.isrc_to_track_data and 'filename' in Storage.isrc_to_track_data[track.isrc]:
+        persisted_filename = Storage.isrc_to_track_data[track.isrc]['filename']
+        if persisted_filename != track.filename:
+            track.update_filename_on_disk()            
+    Storage.set_track_data(track.isrc, artists=track.artists, title=track.artists, filename=track.filename)
+
+def is_filename_unique(track, temp_name_to_isrc):
+    return track.filename.lower() in temp_name_to_isrc
+
+
+def needs_converting(isrc):
+    # TODO: convert ignored_tracks to a set so that we can omit "Storage.ignored_tracks[isrc]"
+    return not is_track_acceptable(isrc) and not (
+        isrc in Storage.ignored_tracks and Storage.ignored_tracks[isrc])
+
+def convert_track_to_youtube_link(track :Track):
+    if track.is_local:
+        return
+
+    if needs_converting(track.isrc):
+        Storage.reset_track(track.isrc)
+        url = isrc_search(track.isrc, track.artists, track.name, track.duration, False, True)
+        track.set_download_url(url)
+        Storage.add_access_url(track.isrc, track.download_url)
+
+def convert_playlist_tracks_to_youtube_links(playlist_id, data_ids, playlists_to_disable):
+    if Storage.is_active_playlist(playlist_id):
+        temp_name_to_isrc = dict()
+        if playlist_id not in data_ids:
+            print("Playlist with id %s not found. Deactivating playlist." % playlist_id)
+            if len(Storage.active_playlist_ids) - len(playlists_to_disable) > 1:
+                playlists_to_disable.append(playlist_id)
+            return
+        playlist = data_ids[playlist_id]
+        
+        tracks = map(Track, playlist['tracks'])
+
+        for track in tracks:
+            store_track_data(track, temp_name_to_isrc)
+
+        number_of_tracks = len(tracks)
+
+        for i, track in enumerate(tracks):
+            # TODO: use logger
+            print('\rProcessing %s: %d/%d' % (playlist['name'], i, number_of_tracks), end='')
+            convert_track_to_youtube_link(track)
+        print()
+
+def convert_tracks_to_youtube_links():
     f = open(conf.playlists_file, "r")
     data = json.loads(f.read())
     f.close()
@@ -56,65 +121,8 @@ def convert_tracks():
     playlists_to_disable = []
     data_ids = {'0' if 'id' not in plist else plist['id']: plist for plist in data}
     for playlist_id in Storage.active_playlist_ids:
-        if Storage.is_active_playlist(playlist_id):
-            temp_name_to_isrc = dict()
-            if playlist_id not in data_ids:
-                print("Playlist with id %s not found. Deactivating playlist." % playlist_id)
-                if len(Storage.active_playlist_ids) - len(playlists_to_disable) > 1:
-                    playlists_to_disable.append(playlist_id)
-                continue
-            playlist = data_ids[playlist_id]
-            for x in playlist['tracks']:
-                if x['track']['is_local']:
-                    continue
-                isrc = x['track']['external_ids']['isrc']
-                new_artists = [y['name'] for y in x['track']['artists']]
-                new_title = x['track']['name']
-                new_name = get_nice_path(new_title, new_artists)
-                if new_name.lower() in temp_name_to_isrc:
-                    print('Duplicate names: %s. Adding album name.' % new_name)
-                    new_album = path_encode(x['track']['album']['name'], nice_path_encoding)
-                    albumname = "%s {%s}" % (new_name, new_album)
-                    if albumname.lower() in temp_name_to_isrc:
-                        isrcname = "%s{%s}" % (albumname, isrc)
-                        if isrcname.lower() in temp_name_to_isrc:
-                            print('ERROR: duplicate artist, title, album and isrc: %s. Ignoring duplicate.' % isrcname)
-                            continue
-                        albumname = isrcname
-                    new_name = albumname
-                temp_name_to_isrc[new_name.lower()] = isrc
+        convert_playlist_tracks_to_youtube_links(playlist_id, data_ids)
 
-                if isrc in Storage.isrc_to_track_data and 'filename' in Storage.isrc_to_track_data[isrc]:
-                    old_name = Storage.isrc_to_track_data[isrc]['filename']
-                    if old_name != new_name:
-                        old_filename = get_filename_ext(old_name, conf.downloaded_audio_folder)
-                        if old_filename is not None:
-                            new_filename = new_name + old_filename[old_filename.rindex('.'):]
-                            old_path = os.path.join(conf.downloaded_audio_folder, old_filename)
-                            new_path = os.path.join(conf.downloaded_audio_folder, new_filename)
-                            if old_path != new_path:
-                                print('Names changed: renaming file "%s" to "%s"' % (old_filename, new_filename))
-                                os.rename(old_path, new_path)
-                Storage.set_track_data(isrc, artists=new_artists, title=new_title, filename=new_name)
-
-            i = 0
-            tracks = playlist['tracks'][:]
-            for x in tracks:
-                i += 1
-                print('\rProcessing %s: %d/%d' % (playlist['name'], i, len(tracks)), end='')
-                if x['track']['is_local']:
-                    continue
-                # spotify adapter
-                isrc = x['track']['external_ids']['isrc']
-                name = x['track']['name']
-                artists = [y['name'] for y in x['track']['artists']]
-
-                if not is_track_acceptable(isrc) and not (
-                        isrc in Storage.ignored_tracks and Storage.ignored_tracks[isrc]):
-                    Storage.reset_track(isrc)
-                    url = isrc_search(isrc, artists, name, x['track']['duration_ms'] / 1000, False, True)
-                    Storage.add_access_url(isrc, url)
-            print()
     for playlist_id in playlists_to_disable:
         del Storage.active_playlist_ids[playlist_id]
 
@@ -328,7 +336,7 @@ if __name__ == '__main__':
         Storage.save()
         print('Data saved.')
     elif args.convert:
-        convert_tracks()
+        convert_tracks_to_youtube_links()
         Storage.save()
         print('Data saved.')
     elif args.review:
@@ -397,7 +405,7 @@ if __name__ == '__main__':
                 print('Data saved.')
                 state = 0
             elif state == 2:
-                convert_tracks()
+                convert_tracks_to_youtube_links()
                 Storage.save()
                 print('Data saved.')
                 state = 0
