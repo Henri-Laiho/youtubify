@@ -13,6 +13,7 @@ from src.ytdownload import get_filename_ext
 
 
 @click.group()
+
 def cli():
     pass
 
@@ -329,7 +330,7 @@ def interactive():
             print('5 - List manually confirmed tracks')
             print('6 - Edit playlist compositions')
             print('q - Exit')
-            act = input('Select: ')
+            act = click.prompt('Select: ')
             if act == '1':
                 state = 1
             elif act == '2':
@@ -352,7 +353,7 @@ def interactive():
             data = None
             while 1:
                 data = list_playlists(data)
-                idx = input('Select playlist to toggle or enter q to exit: ')
+                idx = click.prompt('Select playlist to toggle or enter q to exit: ')
                 if idx == '' or idx == 'q':
                     break
                 try:
