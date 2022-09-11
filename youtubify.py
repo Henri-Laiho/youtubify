@@ -13,7 +13,7 @@ from src.ytdownload import get_filename_ext
 
 
 @click.group()
-
+@click
 def cli():
     pass
 
@@ -362,6 +362,33 @@ def interactive():
                     Storage.set_active_playlist(id_code, not Storage.is_active_playlist(id_code))
                 except ValueError:
                     print('Invalid input')
+            Storage.save()
+            print('Data saved.')
+            state = 0
+        elif state == 2:
+            convert_tracks()
+            Storage.save()
+            print('Data saved.')
+            state = 0
+        elif state == 3:
+            review(browser)
+            Storage.save()
+            print('Data saved.')
+            state = 0
+        elif state == 4:
+            reset_track()
+            Storage.save()
+            print('Data saved.')
+            state = 0
+        elif state == 5:
+            list_manual()
+            state = 0
+        elif state == 6:
+            compose_playlists()
+            Storage.save()
+            print('Data saved.')
+            state = 0
+        print()
 
 
 if __name__ == '__main__':
