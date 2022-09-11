@@ -53,6 +53,7 @@ def search_track(max_results=100):
 
 
 def store_track_data(track : Track, temp_name_to_isrc):
+    
     if track.is_local:
         return
     if is_filename_unique(track, temp_name_to_isrc):
@@ -68,8 +69,8 @@ def store_track_data(track : Track, temp_name_to_isrc):
     if track.isrc in Storage.isrc_to_track_data and 'filename' in Storage.isrc_to_track_data[track.isrc]:
         persisted_filename = Storage.isrc_to_track_data[track.isrc]['filename']
         if persisted_filename != track.filename:
-            track.update_filename_on_disk()            
-    Storage.set_track_data(track.isrc, artists=track.artists, title=track.artists, filename=track.filename)
+            track.update_filename_on_disk(persisted_filename)
+    Storage.set_track_data(track.isrc, artists=track.artists, title=track.name, filename=track.filename)
 
 def is_filename_unique(track, temp_name_to_isrc):
     return track.filename.lower() in temp_name_to_isrc
@@ -80,7 +81,7 @@ def needs_converting(isrc):
     return not is_track_acceptable(isrc) and not (
         isrc in Storage.ignored_tracks and Storage.ignored_tracks[isrc])
 
-def convert_track_to_youtube_link(track :Track):
+def convert_track_to_youtube_link(track : Track):
     if track.is_local:
         return
 
@@ -100,7 +101,7 @@ def convert_playlist_tracks_to_youtube_links(playlist_id, data_ids, playlists_to
             return
         playlist = data_ids[playlist_id]
         
-        tracks = map(Track, playlist['tracks'])
+        tracks = list(map(Track, playlist['tracks']))
 
         for track in tracks:
             store_track_data(track, temp_name_to_isrc)
@@ -121,7 +122,7 @@ def convert_tracks_to_youtube_links():
     playlists_to_disable = []
     data_ids = {'0' if 'id' not in plist else plist['id']: plist for plist in data}
     for playlist_id in Storage.active_playlist_ids:
-        convert_playlist_tracks_to_youtube_links(playlist_id, data_ids)
+        convert_playlist_tracks_to_youtube_links(playlist_id, data_ids, playlists_to_disable)
 
     for playlist_id in playlists_to_disable:
         del Storage.active_playlist_ids[playlist_id]

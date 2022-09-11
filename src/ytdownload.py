@@ -4,19 +4,13 @@ from sys import prefix
 import youtube_dl
 import os
 
-# TODO: prefer opus over m4a
-# WARNING: DO NOT PUT EMPTY STRING HERE IT WILL FUCK THINGS UP
-ytdl_extensions = ['.m4a', '.opus']
-"""
-extension = get_file_extension_if_exists(old_filename, download_folder)
-        if not extension:
-            return
-"""
 
+ytdl_extensions = ['.opus', '.m4a']
 
 
 def is_file_on_disk(filename, directory):
    return get_file_extension_if_exists(filename, directory) is not None
+
 
 def get_file_extension_if_exists(filename, directory):
     for extension in ytdl_extensions:
