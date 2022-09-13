@@ -23,6 +23,7 @@ def path_encode(path, encoding=nice_path_encoding):
             path = path.replace(key, encoding[key])
         return path
 
+
 class Track:
     def __init__(self, track_json):
         track = track_json['track']
@@ -46,12 +47,14 @@ class Track:
         self.date_added = self.added_at[:self.added_at.index('T')]
         self.time_added = self.added_at[self.added_at.index('T') + 1:-1]
 
+
     def add_album_name_to_filename(self):
-        self.filename ="%s {%s}" % (self._get_nice_path(), path_encode(self.album_name))
+        self.filename = "%s {%s}" % (self._get_nice_path(), path_encode(self.album_name))
+
 
     def add_album_and_isrc_to_filename(self):
         # TODO: nicer path_encode or better isrc validation
-        self.filename ="%s {%s} {%s}" % self._get_nice_path(), path_encode(self.album_name), self.isrc
+        self.filename = "%s {%s} {%s}" % self._get_nice_path(), path_encode(self.album_name), self.isrc
 
 
     def _get_nice_path(self):
@@ -60,8 +63,10 @@ class Track:
         else:
             return path_encode(self.name, nice_path_encoding)
 
+
     def update_file_extension(self, old_name):
         self.extension = get_file_extension_if_exists(old_name, download_folder)
+
 
     def update_filename_on_disk(self, old_filename):
         if not self.extension: self.update_file_extension(old_filename)
@@ -72,6 +77,7 @@ class Track:
 
         print('Names changed: renaming file "%s" to "%s"' % (old_filename, self.filename))
         os.rename(old_path, new_path)
+
 
     def set_download_url(self, url):
         self.download_url = url
