@@ -13,7 +13,7 @@ from src.spotify.spotify_backup import SpotifyAPI
 from src.ytdownload import ensure_dir, get_filename_ext
 from youtubify import is_track_acceptable
 
-metadata_version = 4
+metadata_version = 5
 
 
 def fetch_genre_data(spotify_urls):
@@ -60,7 +60,7 @@ def set_metadata(file, title, album, albumartists, artists, track_number, total_
     tmap = f.tag_map[key]
     md_type = tmap.type
     md_sanitizer = tmap.sanitizer
-    f[key] = MetadataItem(md_type, md_sanitizer, arts)
+    f[key] = MetadataItem(md_type, md_sanitizer, arts[:1])
 
     f.save()
 
