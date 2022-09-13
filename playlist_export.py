@@ -43,16 +43,12 @@ else:
     raise RuntimeError('Invalid mode')
 
 
-def format_track(list_track, number, formatter, playlist_type):
-    track = list_track['track']
-    isrc = track['external_ids']['isrc']
-    if isrc not in Storage.isrc_to_track_data:
+def format_track(track : Track, number, formatter, playlist_type):
+    filename = track.get_persisted_filename()
+    if not filename:
         return None
-    data = Storage.isrc_to_track_data[isrc]
-    title = data['title']
-    artists = data['artists']
 
-    fname = get_filename_ext(data['filename'], conf.downloaded_audio_folder)
+    fname = get_filename_ext(filename, conf.downloaded_audio_folder)
     if fname is None:
         return None
     fullpath = os.path.join(playlist_type.downloaded_path, fname)
@@ -117,6 +113,7 @@ if __name__ == '__main__':
     for i, playlist in enumerate(data):
         list_name = playlist['name']
         print(i, list_name)
+        tracks = list(map(Track, playlist['tracks']))
 
         for playlist_type in playlist_types:
             directory = os.path.join(conf.playlists_export_folder, playlist_type.playlist_file_prefix)
@@ -128,12 +125,12 @@ if __name__ == '__main__':
 
             if header is not None:
                 f.write(header + '\n')
-            for j, x in enumerate(playlist['tracks']):
-                if x['track']['is_local']:
+            for j, track in enumerate(tracks):
+                if track.is_local:
                     if no_local:
                         continue
 
-                    fname = Track(x)._get_nice_path()
+                    fname = track._get_nice_path()
                     if fname.endswith(spotify_unsupported_preview_suffix):
                         filename = fname[:-len(spotify_unsupported_preview_suffix)]
                         key = filename[:filename.rindex('.')]
@@ -147,7 +144,7 @@ if __name__ == '__main__':
                     path = os.path.join(playlist_type.spotify_missing_paths[idx], filename)
                     entry = formatter(filename, j, path)
                 else:
-                    entry = format_track(x, j, formatter, playlist_type)
+                    entry = format_track(track, j, formatter, playlist_type)
                 if entry is not None:
                     f.write(entry + '\n')
 

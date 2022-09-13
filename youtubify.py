@@ -52,36 +52,37 @@ def search_track(max_results=100):
         print('No tracks match search.')
 
 
-def store_track_data(track : Track, temp_name_to_isrc):
+def store_track_data(track: Track, temp_name_to_isrc):
     
     if track.is_local:
         return
-    if is_filename_unique(track, temp_name_to_isrc):
+    if is_filename_not_unique(track, temp_name_to_isrc):
         print('Duplicate names: %s. Adding album name.' % track.filename)
         track.add_album_name_to_filename()
-    if is_filename_unique(track, temp_name_to_isrc):
+    if is_filename_not_unique(track, temp_name_to_isrc):
         track.add_album_and_isrc_to_filename
-    if is_filename_unique(track, temp_name_to_isrc):
+    if is_filename_not_unique(track, temp_name_to_isrc):
         print('ERROR: duplicate artist, title, album and isrc: %s. Ignoring duplicate.' % track.filename)
         return
     temp_name_to_isrc[track.filename.lower()] = track.isrc
 
-    if track.isrc in Storage.isrc_to_track_data and 'filename' in Storage.isrc_to_track_data[track.isrc]:
-        persisted_filename = Storage.isrc_to_track_data[track.isrc]['filename']
-        if persisted_filename != track.filename:
-            track.update_filename_on_disk(persisted_filename)
+    persisted_filename = track.get_persisted_filename()
+    if persisted_filename and persisted_filename != track.filename:
+        track.update_filename_on_disk(persisted_filename)
     Storage.set_track_data(track.isrc, artists=track.artists, title=track.name, filename=track.filename)
 
-def is_filename_unique(track, temp_name_to_isrc):
+
+def is_filename_not_unique(track, temp_name_to_isrc):
     return track.filename.lower() in temp_name_to_isrc
 
 
 def needs_converting(isrc):
-    # TODO: convert ignored_tracks to a set so that we can omit "Storage.ignored_tracks[isrc]"
-    return not is_track_acceptable(isrc) and not (
-        isrc in Storage.ignored_tracks and Storage.ignored_tracks[isrc])
+    # TODO: convert ignored_tracks to a set so that we can omit
+    # "Storage.ignored_tracks[isrc]"
+    return not is_track_acceptable(isrc) and not (isrc in Storage.ignored_tracks and Storage.ignored_tracks[isrc])
 
-def convert_track_to_youtube_link(track : Track):
+
+def convert_track_to_youtube_link(track: Track):
     if track.is_local:
         return
 
@@ -90,6 +91,7 @@ def convert_track_to_youtube_link(track : Track):
         url = isrc_search(track.isrc, track.artists, track.name, track.duration, False, True)
         track.set_download_url(url)
         Storage.add_access_url(track.isrc, track.download_url)
+
 
 def convert_playlist_tracks_to_youtube_links(playlist_id, data_ids, playlists_to_disable):
     if Storage.is_active_playlist(playlist_id):
@@ -114,6 +116,7 @@ def convert_playlist_tracks_to_youtube_links(playlist_id, data_ids, playlists_to
             convert_track_to_youtube_link(track)
         print()
 
+
 def convert_tracks_to_youtube_links():
     f = open(conf.playlists_file, "r")
     data = json.loads(f.read())
@@ -135,8 +138,7 @@ def review(browser=False):
     for isrc in Storage.sus_tracks:
         i += 1
         sus_code = Storage.sus_tracks[isrc]['code']
-        if not is_track_acceptable(isrc) and not (
-                isrc in Storage.ignored_tracks and Storage.ignored_tracks[isrc]):
+        if not is_track_acceptable(isrc) and not (isrc in Storage.ignored_tracks and Storage.ignored_tracks[isrc]):
             track = Storage.isrc_to_track_data[isrc]
             name = track['title']
             artists = track['artists']
@@ -152,8 +154,7 @@ def review(browser=False):
                 webbrowser.open(get_search_url(get_search_terms(artists, name)))
 
             while 1:
-                text = input(
-                    'Enter new link, nothing to confirm old link, "skip" to skip this time, "ignore" to ignore next times or "abort" to return to main menu:\n')
+                text = input('Enter new link, nothing to confirm old link, "skip" to skip this time, "ignore" to ignore next times or "abort" to return to main menu:\n')
                 if text == 'skip':
                     break
                 elif text == 'ignore':
@@ -291,7 +292,6 @@ def compose_playlists():
                 print('Invalid input')
 
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     add_storage_argparse(parser)
@@ -306,11 +306,9 @@ if __name__ == '__main__':
     parser.add_argument('--lsman', action='store_true', help='List manually confirmed tracks', default=False)
     parser.add_argument('--compose', action='store_true', help='Make compositions of multiple playlists', default=False)
     parser.add_argument('-a', '--activate', type=int,
-                        help='Activate playlist for spotify to youtube synchronization, ' +
-                             'use "youtubify -l" to list available playlists', default=None)
+                        help='Activate playlist for spotify to youtube synchronization, ' + 'use "youtubify -l" to list available playlists', default=None)
     parser.add_argument('-d', '--deactivate', type=int,
-                        help='Deactivate playlist from spotify to youtube synchronization, ' +
-                             'use "youtubify -l" to list available playlists', default=None)
+                        help='Deactivate playlist from spotify to youtube synchronization, ' + 'use "youtubify -l" to list available playlists', default=None)
     args = parser.parse_args()
     storage_setup(args)
 

@@ -2,6 +2,7 @@ import os
 
 from src.conf import downloaded_audio_folder as download_folder
 from src.ytdownload import get_file_extension_if_exists
+from src.persistance.track_data import Storage
 
 
 nice_path_encoding = {
@@ -81,3 +82,6 @@ class Track:
 
     def set_download_url(self, url):
         self.download_url = url
+
+    def get_persisted_filename(self):
+        return Storage.isrc_to_track_data[self.isrc]['filename'] if self.isrc in Storage.isrc_to_track_data else None
