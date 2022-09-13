@@ -7,7 +7,7 @@ from src.persistance.track_data import Storage, SusCode
 
 BASE_URL = "https://youtube.com"
 
-BLACKLIST = ['live', 'official video', 'official music video', ' at ', 'bass boosted', 'mashup', 'karaoke', 'cover']
+BLACKLIST = ['live', 'official video', 'official music video', ' at ', 'bass boosted', 'mashup', 'karaoke', 'cover', 'nightcore']
 
 
 def is_result_autogen(result):

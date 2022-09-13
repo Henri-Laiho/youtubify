@@ -3,7 +3,7 @@ import json
 import os
 
 from src.conf import spotify_unsupported_preview_suffix
-from src.downloader import get_nice_path
+from src.track import Track
 
 try:
     from conf_playlist_export import playlist_types
@@ -133,7 +133,7 @@ if __name__ == '__main__':
                     if no_local:
                         continue
 
-                    fname = get_nice_path(x['track']['name'], [artist['name'] for artist in x['track']['artists']])
+                    fname = Track(x)._get_nice_path()
                     if fname.endswith(spotify_unsupported_preview_suffix):
                         filename = fname[:-len(spotify_unsupported_preview_suffix)]
                         key = filename[:filename.rindex('.')]

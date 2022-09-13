@@ -4,7 +4,18 @@ from sys import prefix
 import youtube_dl
 import os
 
-ytdl_extensions = ['.m4a', '.opus']
+
+ytdl_extensions = ['.opus', '.m4a']
+
+
+def is_file_on_disk(filename, directory):
+   return get_file_extension_if_exists(filename, directory) is not None
+
+
+def get_file_extension_if_exists(filename, directory):
+    for extension in ytdl_extensions:
+        if os.path.isfile(os.path.join(directory, filename + extension)): return extension
+    return None
 
 
 def get_filename_ext(filename, dir):
