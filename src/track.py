@@ -2,6 +2,7 @@ import os
 
 from src.conf import downloaded_audio_folder as download_folder
 from src.ytdownload import get_file_extension_if_exists
+from src.persistance.track_data import Storage
 
 
 nice_path_encoding = {
@@ -42,6 +43,10 @@ class Track:
 
         self.added_at = track_json['added_at']
         self.album_name = track['album']['name']
+        self.album_artists = [x['name'] for x in track['album']['artists']]
+        self.album_total_tracks = track['album']['total_tracks']
+        self.track_number = track['track_number']
+        self.disc_number = track['disc_number']
         self.release = track['album']['release_date']
         self.arts = track['album']['images']
         self.date_added = self.added_at[:self.added_at.index('T')]
@@ -81,3 +86,6 @@ class Track:
 
     def set_download_url(self, url):
         self.download_url = url
+
+    def get_persisted_filename(self):
+        return Storage.isrc_to_track_data[self.isrc]['filename'] if self.isrc in Storage.isrc_to_track_data else None
