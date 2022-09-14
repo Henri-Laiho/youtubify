@@ -60,7 +60,7 @@ def set_metadata(file, title, album, albumartists, artists, track_number, total_
     tmap = f.tag_map[key]
     md_type = tmap.type
     md_sanitizer = tmap.sanitizer
-    f[key] = MetadataItem(md_type, md_sanitizer, arts[:1])
+    f[key] = MetadataItem(md_type, md_sanitizer, arts)
 
     f.save()
 
@@ -68,7 +68,7 @@ def set_metadata(file, title, album, albumartists, artists, track_number, total_
 def download_arts(urls, track_file):
     ensure_dir(conf.downloaded_artwork_folder)
     arts = []
-    for i, url in enumerate(urls):
+    for i, url in enumerate(urls[:1]):
         filename = os.path.join(conf.downloaded_artwork_folder, track_file + ' cover ' + str(i + 1) + '.jpg')
         exists = os.path.isfile(filename)
         if not exists:
