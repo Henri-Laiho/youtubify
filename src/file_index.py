@@ -1,0 +1,24 @@
+﻿import os
+
+class FileIndex:
+
+    def __init__(self, folders):
+        self.folders = folders
+        self.file_map = {}
+        self.folder_map = {}
+        if folders:
+            for folder in folders:
+                for i in os.listdir(folder):
+                    key = i[:i.rindex('.')]
+                    if key in self.file_map:
+                        print('WARNING: track', key, 'has multiple instances in spotify local files')
+                    self.file_map[key] = i
+                    self.folder_map[key] = folder
+        self.folders_index = {x: i for i, x in enumerate(folders)}
+        
+
+    def which_folder(self, filename):
+        if filename not in self.folder_map:
+            return None
+        return self.folders_index[self.folder_map[filename]]
+    

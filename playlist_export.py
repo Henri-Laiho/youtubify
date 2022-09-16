@@ -2,9 +2,9 @@ import argparse
 import json
 import os
 
-from src.conf import spotify_unsupported_preview_suffix
 from src.track import Track
 from src.playlist import Playlist
+from src.file_index import FileIndex
 from src.composition import Composition
 from src.playlist_format import PlaylistFormat
 
@@ -66,21 +66,6 @@ def add_compositions(playlists_json):
     return playlists
 
 
-def index_local_folders():
-    local_file_map = {}
-    local_folder_map = {}
-    if spotify_local_files_folders:
-        for spotify_local_files_folder in spotify_local_files_folders:
-            for i in os.listdir(spotify_local_files_folder):
-                key = i[:i.rindex('.')]
-                if key in local_file_map:
-                    print('WARNING: track', key, 'has multiple instances in spotify local files')
-                local_file_map[key] = i
-                local_folder_map[key] = spotify_local_files_folder
-    spotify_local_files_folders_index = {x: i for i, x in enumerate(spotify_local_files_folders)}
-    return local_file_map, local_folder_map, spotify_local_files_folders_index
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     add_storage_argparse(parser)
@@ -89,7 +74,7 @@ if __name__ == '__main__':
     storage_setup(args)
     no_local = args.no_local
 
-    local_file_map, local_folder_map, spotify_local_files_folders_index = index_local_folders()
+    local_file_index = FileIndex(spotify_local_files_folders)
 
     ensure_dir(conf.playlists_export_folder)
 
@@ -104,39 +89,12 @@ if __name__ == '__main__':
     for i, playlist in enumerate(playlists):
         list_name = playlist.name
         print(i, list_name)
-        tracks = playlist.tracks
 
         for playlist_type in playlist_types:
             directory = os.path.join(conf.playlists_export_folder, playlist_type.playlist_file_prefix)
             ensure_dir(directory)
 
-            lines = []
-            
-            if header is not None:
-                lines.append(header)
-            for j, track in enumerate(tracks):
-                entry = None
-                if track.is_local:
-                    if no_local:
-                        continue
-
-                    fname = track._get_nice_path()
-                    if fname.endswith(spotify_unsupported_preview_suffix):
-                        filename = fname[:-len(spotify_unsupported_preview_suffix)]
-                        key = filename[:filename.rindex('.')]
-                        idx = spotify_local_files_folders_index[local_folder_map[key]]
-                    else:
-                        if fname not in local_file_map:
-                            print('ERROR:', fname, 'not found in local files')
-                            continue
-                        filename = local_file_map[fname]
-                        idx = spotify_local_files_folders_index[local_folder_map[fname]]
-                    path = os.path.join(playlist_type.spotify_missing_paths[idx], filename)
-                    entry = formatter(filename, j, path)
-                else:
-                    entry = track._get_playlist_entry_string(j, formatter, playlist_type)
-                if entry:
-                    lines.append(entry)
+            lines = playlist.to_format(playlist_format, playlist_type, local_file_index, no_local)
 
             with open(
                 os.path.join(directory, playlist_type.playlist_file_prefix + '_' + list_name + extension),
