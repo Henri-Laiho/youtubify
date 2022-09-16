@@ -108,8 +108,8 @@ if __name__ == '__main__':
 
             strack = None
             for playlist in playlists:
-                if isrc in playlist[ISRC_MAP]:
-                    strack = playlist[ISRC_MAP][isrc]
+                if isrc in playlist.isrc_map:
+                    strack = playlist.isrc_map[isrc]
                     break
             if strack is None:
                 continue

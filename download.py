@@ -8,6 +8,11 @@ from src.persistance.track_data import Storage, add_storage_argparse, storage_se
 from youtubify import is_track_acceptable
 
 
+def is_file_not_downloaded(track_dict):
+    isrc = track_dict[ISRC]
+    return isrc not in Storage.isrc_local_downloaded_status or Storage.isrc_local_downloaded_status[isrc] < download_version
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     add_storage_argparse(parser)
@@ -31,17 +36,10 @@ if __name__ == '__main__':
 
     playlists = load_spotify_playlists(conf.playlists_file)
 
-    init_yt_isrc_tracks(tracks, playlists)
-
-
     if not args.verify:
-        new_tracks = []
-        for track in tracks:
-            isrc = track[ISRC]
-            yt = track[YT]
-            if isrc not in Storage.isrc_local_downloaded_status or Storage.isrc_local_downloaded_status[isrc] < download_version:
-                new_tracks.append(track)
-        tracks = new_tracks
+        tracks = list(filter(is_file_not_downloaded, tracks))
+
+    init_yt_isrc_tracks(tracks, playlists)
 
     download_playlist(tracks, num_threads=16, log_handler=console)
 

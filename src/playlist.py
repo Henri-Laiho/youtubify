@@ -7,6 +7,7 @@ class Playlist:
 		self.tracks = []
 		self.id = None
 		self.name = None
+		isrc_map = {}
 
 
 	def to_format(self, format: PlaylistFormat):
@@ -24,7 +25,9 @@ class Playlist:
 	def from_json(playlist_json):
 		playlist = Playlist()
 		playlist.tracks = [Track(x) for x in playlist_json['tracks']]
-		playlist.id = playlist_json['id']
+		# TODO: liked songs id = user id
+		playlist.id = playlist_json['id'] if 'id' in playlist_json else '0'
 		playlist.name = playlist_json['name']
+		isrc_map = {x.isrc : x for x in playlist.tracks if not x.is_local}
 		return playlist
 
