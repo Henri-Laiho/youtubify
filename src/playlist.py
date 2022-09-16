@@ -28,6 +28,6 @@ class Playlist:
 		# TODO: liked songs id = user id
 		playlist.id = playlist_json['id'] if 'id' in playlist_json else '0'
 		playlist.name = playlist_json['name']
-		isrc_map = {x.isrc : x for x in playlist.tracks if not x.is_local}
+		playlist.isrc_map = {x.isrc : x for x in playlist.tracks if not x.is_local}
 		return playlist
 

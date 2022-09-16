@@ -66,14 +66,7 @@ def add_compositions(playlists_json):
     return playlists
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    add_storage_argparse(parser)
-    parser.add_argument('--no_local', action='store_true', help='don\'t include local files', default=False)
-    args = parser.parse_args()
-    storage_setup(args)
-    no_local = args.no_local
-
+def index_local_folders():
     local_file_map = {}
     local_folder_map = {}
     if spotify_local_files_folders:
@@ -85,6 +78,18 @@ if __name__ == '__main__':
                 local_file_map[key] = i
                 local_folder_map[key] = spotify_local_files_folder
     spotify_local_files_folders_index = {x: i for i, x in enumerate(spotify_local_files_folders)}
+    return local_file_map, local_folder_map, spotify_local_files_folders_index
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    add_storage_argparse(parser)
+    parser.add_argument('--no_local', action='store_true', help='don\'t include local files', default=False)
+    args = parser.parse_args()
+    storage_setup(args)
+    no_local = args.no_local
+
+    local_file_map, local_folder_map, spotify_local_files_folders_index = index_local_folders()
 
     ensure_dir(conf.playlists_export_folder)
 
