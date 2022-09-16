@@ -106,15 +106,14 @@ if __name__ == '__main__':
             if isrc in Storage.metadata_version and Storage.metadata_version[isrc] >= metadata_version:
                 continue
 
-            strack = None
+            track = None
             for playlist in playlists:
-                if isrc in playlist[ISRC_MAP]:
-                    strack = playlist[ISRC_MAP][isrc]
+                if isrc in playlist.isrc_map:
+                    track = playlist.isrc_map[isrc]
                     break
-            if strack is None:
+            if track is None:
                 continue
 
-            track = Track(strack)
             art_files = download_arts(track.arts, newfilename)
 
             set_metadata(newpath_ext,

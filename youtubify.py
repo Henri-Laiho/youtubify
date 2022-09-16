@@ -235,9 +235,8 @@ def is_active(plist):
 
 def list_playlists(data=None, condition=is_active):
     if data is None:
-        f = open(conf.playlists_file, "r")
-        data = json.loads(f.read())
-        f.close()
+        with open(conf.playlists_file, "r") as f:
+            data = json.loads(f.read())
     for i, plist in enumerate(data):
         print('%4d' % i, '+' if condition(plist) else ' ',
               plist['name'])

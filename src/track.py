@@ -3,6 +3,7 @@ import os
 from src.conf import downloaded_audio_folder as download_folder
 from src.ytdownload import get_file_extension_if_exists
 from src.persistance.track_data import Storage
+from src.ytdownload import get_filename_ext
 
 
 nice_path_encoding = {
@@ -28,10 +29,8 @@ def path_encode(path, encoding=nice_path_encoding):
 class Track:
     def __init__(self, track_json):
         track = track_json['track']
-        self.is_local = track['is_local']
-        if not self.is_local:
-            self.isrc = track['external_ids']['isrc']
         self.name = track['name']
+        self.spotify_id = track['id'] if 'id' in track else self.name
         self.download_url = ""
         self.artists = [y['name'] for y in track['artists']]
         # TODO: make some logic referring to the db, names might differ
@@ -42,15 +41,21 @@ class Track:
         self.duration = self.duration_ms / 1000
 
         self.added_at = track_json['added_at']
-        self.album_name = track['album']['name']
-        self.album_artists = [x['name'] for x in track['album']['artists']]
-        self.album_total_tracks = track['album']['total_tracks']
+        album = track['album']
+        self.album_name = album['name']
+        self.album_artists = [x['name'] for x in album['artists']]
         self.track_number = track['track_number']
         self.disc_number = track['disc_number']
-        self.release = track['album']['release_date']
-        self.arts = track['album']['images']
+        self.release = album['release_date']
+        self.arts = album['images']
         self.date_added = self.added_at[:self.added_at.index('T')]
         self.time_added = self.added_at[self.added_at.index('T') + 1:-1]
+
+        # TODO: better handling for no data
+        self.is_local = track['is_local']
+        if not self.is_local:
+            self.isrc = track['external_ids']['isrc']
+            self.album_total_tracks = album['total_tracks']
 
 
     def add_album_name_to_filename(self):
@@ -87,5 +92,28 @@ class Track:
     def set_download_url(self, url):
         self.download_url = url
 
+
     def get_persisted_filename(self):
+        # TODO: remove when track objects are created from storage
         return Storage.isrc_to_track_data[self.isrc]['filename'] if self.isrc in Storage.isrc_to_track_data else None
+
+
+    def __eq__(self, other):
+        return isinstance(other, Track) and self.spotify_id == other.spotify_id
+
+
+    def __hash__(self):
+        return hash(self.spotify_id)
+
+
+    def _get_playlist_entry_string(self, number, formatter, playlist_type):
+        filename = self.get_persisted_filename()
+        if not filename:
+            return None
+
+        filename_with_extension = get_filename_ext(filename, download_folder)
+        if not filename_with_extension:
+            return None
+        fullpath = os.path.join(playlist_type.downloaded_path, filename_with_extension)
+        return formatter(filename_with_extension, number, fullpath)
+

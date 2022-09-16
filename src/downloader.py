@@ -11,23 +11,22 @@ import youtube_dl
 from src import conf
 from src.persistance.track_data import Storage
 from src.ytdownload import YtDownload
+from src.playlist import Playlist
 
 ISRC_MAP = '_isrc_map'
 YT = 'yt'
 ISRC = 'isrc'
-ARTISTS = 'artists'
-NAME = 'name'
 FILENAME = 'filename'
 download_version = 1
 
 
 
 class DlThread(threading.Thread):
-    def __init__(self, threadID, name, q, queueLock, checkExit, update_status_callback, log_handler):
+    def __init__(self, threadID, name, queue : Queue, queueLock, checkExit, update_status_callback, log_handler):
         threading.Thread.__init__(self)
         self.threadID = threadID
         self.name = name
-        self.q = q
+        self.queue = queue
         self.queueLock = queueLock
         self.checkExit = checkExit
         self.log = logging.Logger(name, level=logging.INFO)
@@ -37,15 +36,15 @@ class DlThread(threading.Thread):
 
     def run(self):
         logging.info("Starting " + self.name)
-        self.process_data(self.q)
+        self.process_data()
         logging.info("Exiting " + self.name)
 
-    def process_data(self, q):
+    def process_data(self):
         while not self.checkExit():
             self.queueLock.acquire()
-            if not q.empty():
-                track = q.get()
-                size = q.qsize()
+            if not self.queue.empty():
+                track = self.queue.get()
+                size = self.queue.qsize()
                 self.queueLock.release()
                 if FILENAME not in track or YT not in track:
                     logging.warning("%s, track missing: %s" % (self.name, track[ISRC]))
@@ -70,47 +69,37 @@ class DlThread(threading.Thread):
             time.sleep(0.01)
 
 
-def load_spotify_playlists(file):
-    f = open(file, "r")
-    data = json.loads(f.read())
-    for playlist in data:
-        isrc_map = {}
-        for track in playlist['tracks']:
-            if track['track']['is_local']:
-                continue
-            isrc = track['track']['external_ids']['isrc']
-            isrc_map[isrc] = track
-        playlist[ISRC_MAP] = isrc_map
-    return data
+def load_spotify_playlists(file) -> list:
+    with open(file, "r") as f:
+        playlists_json = json.loads(f.read())
+    playlists = [Playlist.from_json(x) for x in playlists_json]
+    return playlists
 
 
-def pick_spotify_playlist(data, idx=None):
+def pick_spotify_playlist(playlists: list, idx=None) -> Playlist:
     if idx is None:
-        for i, playlist in enumerate(data):
-            print(i, playlist['name'])
+        for i, playlist in enumerate(playlists):
+            print(i, playlist.name)
     else:
         return data[idx]
 
 
-def init_yt_isrc_tracks(tracks, playlists):
+def init_yt_isrc_tracks(tracks, playlists : list):
     for track in tracks:
         isrc = track[ISRC]
-        name, artists = None, None
-        for playlist in playlists:
-            if isrc in playlist[ISRC_MAP]:
-                strack = playlist[ISRC_MAP][isrc]
-                name = strack['track']['name']
-                artists = [y['name'] for y in strack['track']['artists']]
-                break
-        if name is None or artists is None:
-            continue
-        track[NAME] = name
-        track[ARTISTS] = artists
         if isrc in Storage.isrc_to_track_data:
             track[FILENAME] = Storage.isrc_to_track_data[isrc]['filename']
         else:
-            track[FILENAME] = get_nice_path(name, artists)
-            print('Warning: using old filename: %s' % track[FILENAME])
+            # TODO: following logic needs to be redesigned for multi-user-system
+            strack = None
+            for playlist in playlists:
+                if isrc in playlist.isrc_map:
+                    strack = playlist.isrc_map[isrc]
+                    break
+            if strack is None:
+                continue
+            track[FILENAME] = strack.filename
+            print('Warning: using old filename: %s; Make sure you run "youtubify.py -c" before "download.py"' % strack.filename)
 
 
 cursor_up = lambda lines: '\x1b[{0}A'.format(lines)
@@ -122,9 +111,8 @@ def download_playlist(tracks, num_threads=1, log_handler=None):
     queueLock = threading.Lock()
     workQueue = Queue()
     threads = []
-    threadID = 1
     thread_status_lock = threading.Lock()
-    last_status = {'print_time' : 0}
+    last_status = {'print_time' : 0, 'lines' : 0}
     thread_statuses = {-1 : {'_eta_str': '0s', '_percent_str': '  0.0%', '_speed_str': '  0B/s', '_total_bytes_str': '0B', 'filename': '', 'status': ''}}
     
     def checkExit():
@@ -143,6 +131,7 @@ def download_playlist(tracks, num_threads=1, log_handler=None):
         print('\n'.join(lines))
         print('\r', end='')
         print(cursor_up(len(lines)), end='')
+        last_status['lines'] = len(lines)
         if log_handler: log_handler.release()
 
     def update_status(id, data):
@@ -155,12 +144,11 @@ def download_playlist(tracks, num_threads=1, log_handler=None):
         thread_status_lock.release()
 
     # Create new threads
-    for tName in threadList:
-        thread = DlThread(threadID, tName, workQueue, queueLock, checkExit, update_status, log_handler)
+    for threadID, tName in enumerate(threadList):
+        thread = DlThread(threadID+1, tName, workQueue, queueLock, checkExit, update_status, log_handler)
         threads.append(thread)
-        thread_statuses[threadID] = thread_statuses[-1]
+        thread_statuses[threadID+1] = thread_statuses[-1]
         thread.start()
-        threadID += 1
     del thread_statuses[-1]
 
 
@@ -172,7 +160,7 @@ def download_playlist(tracks, num_threads=1, log_handler=None):
 
     # Wait for queue to empty
     while not workQueue.empty():
-        pass
+        time.sleep(0.1)
 
     # Notify threads it's time to exit
     exitFlag = 1
@@ -180,4 +168,5 @@ def download_playlist(tracks, num_threads=1, log_handler=None):
     # Wait for all threads to complete
     for t in threads:
         t.join()
+    print('\n'*last_status['lines'])
     print("Exiting Main Thread")
