@@ -2,8 +2,11 @@ import argparse
 import json
 import os
 
-from src.conf import spotify_unsupported_preview_suffix
-from src.downloader import get_nice_path
+from src.track import Track
+from src.playlist import Playlist
+from src.file_index import FileIndex
+from src.composition import Composition
+from src.playlist_format import PlaylistFormat
 
 try:
     from conf_playlist_export import playlist_types
@@ -20,6 +23,7 @@ try:
 except ImportError:
     spotify_local_files_folders = None
 
+# TODO: implement UI for mode choice
 mode = 'm3u8'
 
 
@@ -42,49 +46,23 @@ elif mode == 'simple':
 else:
     raise RuntimeError('Invalid mode')
 
-
-def format_track(list_track, number, formatter, playlist_type):
-    track = list_track['track']
-    isrc = track['external_ids']['isrc']
-    if isrc not in Storage.isrc_to_track_data:
-        return None
-    data = Storage.isrc_to_track_data[isrc]
-    title = data['title']
-    artists = data['artists']
-
-    fname = get_filename_ext(data['filename'], conf.downloaded_audio_folder)
-    if fname is None:
-        return None
-    fullpath = os.path.join(playlist_type.downloaded_path, fname)
-    return formatter(fname, number, fullpath)
+playlist_format = PlaylistFormat('m3u8', "#EXTM3U", format_m3u8, '.m3u8')
 
 
-def join_playlists(p1, p2):
-    tracks = p1['tracks'][:]
-    ids = {x['track']['id'] if x['track']['id'] is not None else x['track']['name'] for x in tracks}
-    for y in p2['tracks']:
-        id = y['track']['id'] if y['track']['id'] is not None else y['track']['name']
-        if id not in ids:
-            tracks.append(y)
-            ids.add(id)
-    return {
-        'name': '%s & %s' % (p1['name'], p2['name']), 
-        'tracks': tracks
-        }
+def add_compositions(playlists_json):
+    # TODO: enter id in spotify_import.py script
+    playlists_json[0]['id'] = '0'
+    # TODO: parse playlists_json to Playlist objects in another function
+    playlists = [Playlist.from_json(x) for x in playlists_json]
+    id_to_plist = {x.id : x for x in playlists}
 
+    for composition_name, playlist_ids in Storage.playlist_compositions.items():
+        comp = Composition(composition_name)
 
-def add_compositions(playlists):
-    id_to_plist = {x['id'] if 'id' in x else '0' : x for x in playlists}
-    for name in Storage.playlist_compositions:
-        prev = None
-        for id in Storage.playlist_compositions[name]:
-            playlist = id_to_plist[id]
-            if prev is not None:
-                prev = join_playlists(prev, playlist)
-            else:
-                prev = playlist
-        prev['name'] = "%s (%s)" % (name, prev['name'])
-        playlists.append(prev)
+        for playlist_id in playlist_ids:
+            comp.add_playlist(id_to_plist[playlist_id])
+
+        playlists.append(comp.to_playlist())
     return playlists
 
 
@@ -95,59 +73,32 @@ if __name__ == '__main__':
     storage_setup()
     no_local = args.no_local
 
-    f = open(conf.playlists_file, "r")
-    data = json.loads(f.read())
-    f.close()
-
-    local_file_map = {}
-    local_folder_map = {}
-    if spotify_local_files_folders:
-        for spotify_local_files_folder in spotify_local_files_folders:
-            for i in os.listdir(spotify_local_files_folder):
-                key = i[:i.rindex('.')]
-                if key in local_file_map:
-                    print('WARNING: track', key, 'has multiple instances in spotify local files')
-                local_file_map[key] = i
-                local_folder_map[key] = spotify_local_files_folder
-    spotify_local_files_folders_index = {x: i for i, x in enumerate(spotify_local_files_folders)}
+    local_file_index = FileIndex(spotify_local_files_folders)
 
     ensure_dir(conf.playlists_export_folder)
-    data = add_compositions(data)
-    for i, playlist in enumerate(data):
-        list_name = playlist['name']
+
+    with open(conf.playlists_file, "r") as f:
+        playlists_json = json.loads(f.read())
+    if not playlists_json:
+        exit(-1)
+
+    playlists = add_compositions(playlists_json)
+
+
+    for i, playlist in enumerate(playlists):
+        list_name = playlist.name
         print(i, list_name)
 
         for playlist_type in playlist_types:
             directory = os.path.join(conf.playlists_export_folder, playlist_type.playlist_file_prefix)
             ensure_dir(directory)
-            f = open(
+
+            lines = playlist.to_format(playlist_format, playlist_type, local_file_index, no_local)
+
+            with open(
                 os.path.join(directory, playlist_type.playlist_file_prefix + '_' + list_name + extension),
                 mode='w+',
-                encoding='utf8')
+                encoding='utf8') as f:
+                for line in lines:
+                    f.write(line + '\n')
 
-            if header is not None:
-                f.write(header + '\n')
-            for j, x in enumerate(playlist['tracks']):
-                if x['track']['is_local']:
-                    if no_local:
-                        continue
-
-                    fname = get_nice_path(x['track']['name'], [artist['name'] for artist in x['track']['artists']])
-                    if fname.endswith(spotify_unsupported_preview_suffix):
-                        filename = fname[:-len(spotify_unsupported_preview_suffix)]
-                        key = filename[:filename.rindex('.')]
-                        idx = spotify_local_files_folders_index[local_folder_map[key]]
-                    else:
-                        if fname not in local_file_map:
-                            print('ERROR:', fname, 'not found in local files')
-                            continue
-                        filename = local_file_map[fname]
-                        idx = spotify_local_files_folders_index[local_folder_map[fname]]
-                    path = os.path.join(playlist_type.spotify_missing_paths[idx], filename)
-                    entry = formatter(filename, j, path)
-                else:
-                    entry = format_track(x, j, formatter, playlist_type)
-                if entry is not None:
-                    f.write(entry + '\n')
-
-            f.close()

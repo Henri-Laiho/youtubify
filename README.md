@@ -46,6 +46,39 @@ In all cases `python youtubify.py --help` can answer most questions.
 
 Ping @henri-laiho.
 
+## Architecture and data flows
+
+### spotify_import.py
+
+This file simply takes Spotify metadata and processes it.
+```mermaid
+flowchart LR
+init["INIT SCRIPT"] --> begin["read arguments and create storage"];
+subgraph src/persistance/track_data.py
+begin --> add_arg["add arguments"];
+subgraph Storage class
+begin --> init_store["initialize storage by reading a file to memory"]
+init_store --> set_data["set some data to static variables of the Storage class"]
+set_data --> begin
+end
+end
+begin --> try["try to download Spotify data"];
+subgraph src/utils/bunch.py
+try --> hold_conf["hold configuration in an object"]
+hold_conf --> try
+end
+subgraph src/spotify/spotify_backup.py
+try --> get_token["try to get token and spotify data with config in bunch object"]
+get_token --> file_check["check for output file"]
+file_check --> log_in["log in and show user info"]
+log_in --> gather_data["gather song data from file"]
+gather_data --> write_data["write data to a file"]
+end
+write_data --> return_token["return Spotify token"]
+return_token --> try
+try --> save['save to storage on success'];
+```
+
 ## Disclaimer
 
 This is for education or personal use purposes only.

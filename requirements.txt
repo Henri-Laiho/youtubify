@@ -6,3 +6,4 @@ wget
 levenshtein
 music-tag
 click
+colorama
