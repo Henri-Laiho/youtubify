@@ -8,7 +8,7 @@ from src.persistance.track_data import Storage, SusCode, storage_setup, describe
 from src.playlist import Playlist
 from src.search.Search import isrc_search, get_search_url, get_search_terms
 from src.ytdownload import get_filename_ext
-from simple_term_menu import TerminalMenu
+from src.universal_menu import Menu
 from src.track import Track
 
 
@@ -358,12 +358,12 @@ def interactive():
         options = ['Toggle active playlists', 'Convert playlists to youtube', 'Review sus tracks',
                    'Review sus tracks while automatically opening youtube pages', 'Reset confirmed track',
                    'List manually confirmed tracks', 'Edit playlist compositions', 'Exit']
-        state = TerminalMenu(options).show() + 1
+        state = Menu(options).show() + 1
         if state == 1:
             active_playlist_menu_exit = False
             while not active_playlist_menu_exit:
                 playlists = get_playlists()
-                selected = TerminalMenu([f"{d.is_active} {d.name}" for d in playlists] + ['Back']).show()
+                selected = Menu([f"{'+' if d.is_active else ' '} {d.name}" for d in playlists] + ['Back']).show()
                 if selected == len(playlists):
                     break
                 try:
