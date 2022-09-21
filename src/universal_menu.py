@@ -2,11 +2,9 @@
 
 try:
     from simple_term_menu import TerminalMenu
-    menu = TerminalMenu
     unix = True
 except NotImplementedError:
     from consolemenu import SelectionMenu
-    menu = SelectionMenu
     unix = False
 
 
