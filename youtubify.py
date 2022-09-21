@@ -12,9 +12,11 @@ from src.universal_menu import Menu
 from src.track import Track
 
 
-@click.group()
-def cli():
-    pass
+@click.group(invoke_without_command=True)
+@click.pass_context
+def cli(ctx):
+    if ctx.invoked_subcommand is None:
+        interactive()
 
 
 def is_track_acceptable(isrc):
@@ -270,7 +272,7 @@ def get_playlists():
         return [Playlist.from_json(p) for p in json.loads(f.read())]
 
 
-def list_playlists(playlists: [Playlist] = None, condition=is_active) -> [Playlist]:
+def list_playlists(playlists: [Playlist]=None, condition=is_active) -> [Playlist]:
     if playlists is None:
         playlists = get_playlists()
     for i, playlist in enumerate(playlists):
@@ -351,7 +353,6 @@ def toggle_playlist(selected_playlist, make_active):
     click.echo("Changes saved.")
 
 
-@cli.command()
 def interactive():
     main_menu_exit = False
     while not main_menu_exit:
