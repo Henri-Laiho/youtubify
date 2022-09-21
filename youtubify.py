@@ -124,7 +124,7 @@ def convert_playlist_tracks_to_youtube_links(playlist_id, data_ids, playlists_to
         print()
 
 
-def convert_tracks_to_youtube_links():
+def convert_active_playlists_to_youtube_links():
     f = open(conf.playlists_file, "r")
     data = json.loads(f.read())
     f.close()
@@ -151,7 +151,7 @@ def review(browser=False):
     for isrc in Storage.sus_tracks:
         i += 1
         sus_code = Storage.sus_tracks[isrc]['code']
-        if not is_track_acceptable(isrc) and not (isrc in Storage.ignored_tracks and Storage.ignored_tracks[isrc]):
+        if needs_converting(isrc):
             track = Storage.isrc_to_track_data[isrc]
             name = track['title']
             artists = track['artists']
@@ -375,7 +375,7 @@ def interactive():
             Storage.save()
             click.echo('Data saved.')
         elif state == 2:
-            convert_tracks_to_youtube_links()
+            convert_active_playlists_to_youtube_links()
             Storage.save()
             click.echo('Data saved.')
         elif state == 3:
