@@ -5,4 +5,7 @@ setuptools
 wget
 levenshtein
 music-tag
+click
 colorama
+simple_term_menu
+console-menu

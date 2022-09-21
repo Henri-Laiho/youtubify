@@ -180,15 +180,8 @@ class Storage:
             json.dump(data, f)
 
 
-def add_storage_argparse(parser):
-    parser.add_argument('--dev', action='store_true', help='use development database', default=False)
-    parser.add_argument('-p', '--profile', type=str, help='data profile name', default='ytfy')
-
-
-def storage_setup(args):
-    development = args.dev
-    profile = args.profile
-    datafile = '%s_data%s.json' % (profile, '.dev' if development else '')
+def storage_setup():
+    profile = 'ytfy'
+    datafile = '%s_data.json' % profile
     Storage.load(datafile)
-    conf.Flags.development = development
     conf.Flags.profile = profile

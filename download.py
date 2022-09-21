@@ -4,7 +4,7 @@ import colorama
 
 from src import conf
 from src.downloader import load_spotify_playlists, init_yt_isrc_tracks, download_playlist, YT, ISRC, download_version
-from src.persistance.track_data import Storage, add_storage_argparse, storage_setup
+from src.persistance.track_data import Storage, storage_setup
 from youtubify import is_track_acceptable
 
 
@@ -15,10 +15,9 @@ def is_file_not_downloaded(track_dict):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    add_storage_argparse(parser)
     parser.add_argument('-v', '--verify', action='store_true', help='Verify all files exist', default=False)
     args = parser.parse_args()
-    storage_setup(args)
+    storage_setup()
 
     colorama.init()
 

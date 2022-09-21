@@ -1,5 +1,6 @@
 import os
 
+from src.persistance.track_data import Storage
 from src.track import Track
 from src.playlist_format import PlaylistFormat
 from src.file_index import FileIndex
@@ -11,6 +12,7 @@ class Playlist:
         self.tracks = []
         self.id = None
         self.name = None
+        self.is_active = False
         isrc_map = {}
         
         
@@ -52,6 +54,8 @@ class Playlist:
         # TODO: liked songs id = user id
         playlist.id = playlist_json['id'] if 'id' in playlist_json else '0'
         playlist.name = playlist_json['name']
+        # TODO: remove or consolidate accessing Storage outside this class
+        playlist.is_active = Storage.is_active_playlist(playlist.id)
         playlist.isrc_map = {x.isrc : x for x in playlist.tracks if not x.is_local}
         return playlist
     

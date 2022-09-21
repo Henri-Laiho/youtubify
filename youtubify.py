@@ -1,13 +1,20 @@
-import argparse
+import click
 import json
 import os
 import webbrowser
 
 from src import conf
-from src.persistance.track_data import Storage, SusCode, add_storage_argparse, storage_setup, describe_track
+from src.persistance.track_data import Storage, SusCode, storage_setup, describe_track
+from src.playlist import Playlist
 from src.search.Search import isrc_search, get_search_url, get_search_terms
 from src.ytdownload import get_filename_ext
+from src.universal_menu import Menu
 from src.track import Track
+
+
+@click.group()
+def cli():
+    pass
 
 
 def is_track_acceptable(isrc):
@@ -53,14 +60,14 @@ def search_track(max_results=100):
 
 
 def store_track_data(track: Track, temp_name_to_isrc):
-    
+
     if track.is_local:
         return
     if is_filename_not_unique(track, temp_name_to_isrc):
         print('Duplicate names: %s. Adding album name.' % track.filename)
         track.add_album_name_to_filename()
     if is_filename_not_unique(track, temp_name_to_isrc):
-        track.add_album_and_isrc_to_filename
+        track.add_album_and_isrc_to_filename()
     if is_filename_not_unique(track, temp_name_to_isrc):
         print('ERROR: duplicate artist, title, album and isrc: %s. Ignoring duplicate.' % track.filename)
         return
@@ -102,7 +109,7 @@ def convert_playlist_tracks_to_youtube_links(playlist_id, data_ids, playlists_to
                 playlists_to_disable.append(playlist_id)
             return
         playlist = data_ids[playlist_id]
-        
+
         tracks = list(map(Track, playlist['tracks']))
 
         for track in tracks:
@@ -129,6 +136,12 @@ def convert_active_playlists_to_youtube_links():
 
     for playlist_id in playlists_to_disable:
         del Storage.active_playlist_ids[playlist_id]
+
+
+@cli.command("review")
+@click.option("--browser", default=True, help="Review links in browser")
+def review_cli(browser=False):
+    review(browser)
 
 
 def review(browser=False):
@@ -182,6 +195,11 @@ def review(browser=False):
         Storage.confirm(isrc)
 
 
+@cli.command
+def reset():
+    reset_track()
+
+
 def reset_track():
     tracks = search_track()
     if tracks is None:
@@ -219,6 +237,11 @@ def reset_track():
                 print('Invalid input')
 
 
+@cli.command
+def lsman():
+    list_manual()
+
+
 def list_manual():
     print("Manually confirmed tracks:")
     i = 0
@@ -233,14 +256,27 @@ def is_active(plist):
     return Storage.is_active_playlist('0' if 'id' not in plist else plist['id'])
 
 
-def list_playlists(data=None, condition=is_active):
-    if data is None:
-        with open(conf.playlists_file, "r") as f:
-            data = json.loads(f.read())
-    for i, plist in enumerate(data):
-        print('%4d' % i, '+' if condition(plist) else ' ',
-              plist['name'])
-    return data
+def is_active_playlist(plist: Playlist):
+    return Storage.is_active_playlist(plist.id)
+
+
+@cli.command("list")
+def list_p():
+    list_playlists()
+
+
+def get_playlists():
+    with open(conf.playlists_file, "r") as f:
+        return [Playlist.from_json(p) for p in json.loads(f.read())]
+
+
+def list_playlists(playlists: [Playlist] = None, condition=is_active) -> [Playlist]:
+    if playlists is None:
+        playlists = get_playlists()
+    for i, playlist in enumerate(playlists):
+        delimiter = '+' if is_active_playlist(playlist) else ' '
+        click.echo(f'{i} {delimiter} {playlist.name}')
+    return playlists
 
 
 def list_playlist_comps():
@@ -251,11 +287,16 @@ def list_playlist_comps():
     return data
 
 
+@cli.command
+def compose():
+    compose_playlists()
+
+
 def compose_playlists():
     data = None
     while 1:
         comps = list_playlist_comps()
-        name = input('Enter playlist composition name to edit or create composition, or q to exit: ')
+        name = click.prompt('Enter playlist composition name to edit or create composition, or q to exit')
         if name == '' or name == 'q':
             break
         try:
@@ -268,12 +309,9 @@ def compose_playlists():
             comp = {}
 
         while 1:
-            def is_in_comp(plist):
-                id = '0' if 'id' not in plist else plist['id']
-                return id in comp
-            print('Editing playlist composition "%s"' % name)
-            data = list_playlists(data, condition=is_in_comp)
-            idx = input('Select playlist to toggle or enter q to exit or enter "delete" to delete the composition: ')
+            click.echo('Editing playlist composition "%s"' % name)
+            data = list_playlists(data)
+            idx = click.prompt('Select playlist to toggle or enter q to exit or enter "delete" to delete the composition')
             if idx == '' or idx == 'q':
                 Storage.playlist_compositions[name] = comp
                 break
@@ -291,140 +329,80 @@ def compose_playlists():
                 print('Invalid input')
 
 
+@cli.command("activate")
+@click.argument('playlist_number', type=int)
+def activate_playlist(playlist_number: int):
+    toggle_playlist(playlist_number, True)
+
+
+@cli.command("deactivate")
+@click.argument('playlist_number', type=int)
+def deactivate_playlist(playlist_number):
+    toggle_playlist(playlist_number, False)
+
+
+def toggle_playlist(selected_playlist, make_active):
+    with open(conf.playlists_file, "r") as f:
+        data = json.loads(f.read())
+    playlist = data[selected_playlist]
+    id_code = '0' if 'id' not in playlist else playlist['id']
+    Storage.set_active_playlist(id_code, make_active)
+    Storage.save()
+    click.echo("Changes saved.")
+
+
+@cli.command()
+def interactive():
+    main_menu_exit = False
+    while not main_menu_exit:
+        options = ['Toggle active playlists', 'Convert playlists to youtube', 'Review sus tracks',
+                   'Review sus tracks while automatically opening youtube pages', 'Reset confirmed track',
+                   'List manually confirmed tracks', 'Edit playlist compositions', 'Exit']
+        state = Menu(options).show() + 1
+        if state == 1:
+            active_playlist_menu_exit = False
+            while not active_playlist_menu_exit:
+                playlists = get_playlists()
+                selected = Menu([f"{'+' if d.is_active else ' '} {d.name}" for d in playlists] + ['Back']).show()
+                if selected == len(playlists):
+                    break
+                try:
+                    playlist = playlists[selected]
+                    # TODO: make a toggle function to Storage
+                    Storage.set_active_playlist(playlist.id, not Storage.is_active_playlist(playlist.id))
+                except ValueError:
+                    click.echo('Invalid input')
+            Storage.save()
+            click.echo('Data saved.')
+        elif state == 2:
+            convert_active_playlists_to_youtube_links()
+            Storage.save()
+            click.echo('Data saved.')
+        elif state == 3:
+            review()
+            Storage.save()
+            click.echo('Data saved.')
+        elif state == 4:
+            review(browser=True)
+            Storage.save()
+            click.echo('Data saved.')
+        elif state == 5:
+            reset_track()
+            Storage.save()
+            click.echo('Data saved.')
+        elif state == 6:
+            list_manual()
+        elif state == 7:
+            compose_playlists()
+            Storage.save()
+            click.echo('Data saved.')
+        elif state == 8:
+            quit()
+        click.echo()
+
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    add_storage_argparse(parser)
-
-    parser.add_argument('-c', '--convert', action='store_true', help='Convert playlists to youtube links', default=False)
-    parser.add_argument('-s', '--reset', action='store_true', help='Reset confirmed track', default=False)
-    parser.add_argument('-r', '--review', action='store_true', help='Review sus tracks', default=False)
-    parser.add_argument('-R', '--review_browser', action='store_true',
-                        help='Review sus tracks while automatically opening youtube pages', default=False)
-    parser.add_argument('-l', '--list', action='store_true', help='List available playlists with activation status',
-                        default=False)
-    parser.add_argument('--lsman', action='store_true', help='List manually confirmed tracks', default=False)
-    parser.add_argument('--compose', action='store_true', help='Make compositions of multiple playlists', default=False)
-    parser.add_argument('-a', '--activate', type=int,
-                        help='Activate playlist for spotify to youtube synchronization, ' + 'use "youtubify -l" to list available playlists', default=None)
-    parser.add_argument('-d', '--deactivate', type=int,
-                        help='Deactivate playlist from spotify to youtube synchronization, ' + 'use "youtubify -l" to list available playlists', default=None)
-    args = parser.parse_args()
-    storage_setup(args)
-
-    if args.list:
-        list_playlists()
-    elif args.lsman:
-        list_manual()
-    elif args.activate is not None:
-        f = open(conf.playlists_file, "r")
-        data = json.loads(f.read())
-        f.close()
-        playlist = data[args.activate]
-        id_code = '0' if 'id' not in playlist else playlist['id']
-        Storage.set_active_playlist(id_code, True)
-        Storage.save()
-        print('Data saved.')
-    elif args.deactivate is not None:
-        f = open(conf.playlists_file, "r")
-        data = json.loads(f.read())
-        f.close()
-        playlist = data[args.deactivate]
-        id_code = '0' if 'id' not in playlist else playlist['id']
-        Storage.set_active_playlist(id_code, False)
-        Storage.save()
-        print('Data saved.')
-    elif args.convert:
-        convert_active_playlists_to_youtube_links()
-        Storage.save()
-        print('Data saved.')
-    elif args.review:
-        review()
-        Storage.save()
-        print('Data saved.')
-    elif args.review_browser:
-        review(True)
-        Storage.save()
-        print('Data saved.')
-    elif args.reset:
-        reset_track()
-        Storage.save()
-        print('Data saved.')
-    elif args.compose:
-        compose_playlists()
-        Storage.save()
-        print('Data saved.')
-    else:
-        state = 0
-        playlist = None
-        browser = False
-        while state > -1:
-            if state == 0:
-                print('1 - Toggle active playlists')
-                print('2 - Convert playlists to youtube')
-                print('3 - Review sus tracks')
-                print('3a - Review sus tracks while automatically opening youtube pages')
-                print('4 - Reset confirmed track')
-                print('5 - List manually confirmed tracks')
-                print('6 - Edit playlist compositions')
-                print('q - Exit')
-                act = input('Select: ')
-                if act == '1':
-                    state = 1
-                elif act == '2':
-                    state = 2
-                elif act == '3':
-                    state = 3
-                    browser = False
-                elif act == '3a':
-                    state = 3
-                    browser = True
-                elif act == '4':
-                    state = 4
-                elif act == '5':
-                    state = 5
-                elif act == '6':
-                    state = 6
-                elif act == 'q':
-                    state = -1
-            if state == 1:
-                data = None
-                while 1:
-                    data = list_playlists(data)
-                    idx = input('Select playlist to toggle or enter q to exit: ')
-                    if idx == '' or idx == 'q':
-                        break
-                    try:
-                        playlist = data[int(idx)]
-                        id_code = '0' if 'id' not in playlist else playlist['id']
-                        Storage.set_active_playlist(id_code, not Storage.is_active_playlist(id_code))
-                    except ValueError:
-                        print('Invalid input')
-                Storage.save()
-                print('Data saved.')
-                state = 0
-            elif state == 2:
-                convert_active_playlists_to_youtube_links()
-                Storage.save()
-                print('Data saved.')
-                state = 0
-            elif state == 3:
-                review(browser)
-                Storage.save()
-                print('Data saved.')
-                state = 0
-            elif state == 4:
-                reset_track()
-                Storage.save()
-                print('Data saved.')
-                state = 0
-            elif state == 5:
-                list_manual()
-                state = 0
-            elif state == 6:
-                compose_playlists()
-                Storage.save()
-                print('Data saved.')
-                state = 0
-            print()
-        Storage.save()
-        print('Data saved.')
+    storage_setup()
+    cli()
+    Storage.save()
+    print('Data saved.')
