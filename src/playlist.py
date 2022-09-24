@@ -59,9 +59,15 @@ class Playlist:
         playlist.isrc_map = {x.isrc : x for x in playlist.tracks if not x.is_local}
         return playlist
 
-    def get_menu_entry_string(self):
-        delimiter = '+' if self.is_active else ' '
-        return f'{delimiter} {self.name}'
+
+    def toggle_is_active(self):
+        self.is_active = not Storage.is_active_playlist(self.id)
+        Storage.set_active_playlist(self.id, self.is_active)
+        
+
+    def is_in_composition(self, composition: dict):
+        return self.id in composition
+
 
     def __str__(self):
         return self.name

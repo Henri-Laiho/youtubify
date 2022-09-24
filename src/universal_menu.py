@@ -14,7 +14,7 @@ class Menu:
         if unix:
             self.menu = TerminalMenu(menu_items)
         else:
-            self.menu = SelectionMenu(menu_items, show_exit_option=False)
+            self.menu = SelectionMenu(menu_items, show_exit_option=False, clear_screen=False)
 
 
     def show(self):

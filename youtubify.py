@@ -12,6 +12,9 @@ from src.universal_menu import Menu
 from src.track import Track
 
 
+singleton_spotify_playlists = []
+
+
 def is_track_acceptable(isrc):
     if isrc not in Storage.isrc_to_access_url:
         return False
@@ -231,9 +234,11 @@ def list_manual():
     print("Total %d manually confirmed tracks" % i)
 
 
-def get_playlists():
-    with open(conf.playlists_file, "r") as f:
-        return [Playlist.from_json(p) for p in json.loads(f.read())]
+def get_playlists() -> [Playlist]:
+    if len(singleton_spotify_playlists) == 0:
+        with open(conf.playlists_file, "r") as f:
+            singleton_spotify_playlists.extend([Playlist.from_json(p) for p in json.loads(f.read())])
+    return singleton_spotify_playlists
 
 
 def list_playlists(playlists: [Playlist]=None) -> [Playlist]:
@@ -253,11 +258,9 @@ def get_playlist_comp_names():
 
 def edit_composition(name, comp):
     playlists = get_playlists()
-    for playlist in playlists:
-        playlist.is_active = playlist.id in comp
 
     while True:
-        prompts = [p.get_menu_entry_string() for p in playlists] + ['Delete composition', 'Back']
+        prompts = [f"{'+' if p.is_in_composition(comp) else ' '} {p.name}" for p in playlists] + ['Delete composition', 'Back']
         selected_prompt_index = Menu(prompts).show()
         selected_prompt = prompts[selected_prompt_index]
 
@@ -268,12 +271,10 @@ def edit_composition(name, comp):
             return
 
         selected_playlist = playlists[selected_prompt_index]
-        if selected_playlist.is_active:
+        if selected_playlist.is_in_composition(comp):
             del comp[selected_playlist.id]
-            selected_playlist.is_active = False
         else:
             comp[selected_playlist.id] = True
-            selected_playlist.is_active = True
 
 
 def compose_playlists():
@@ -314,7 +315,7 @@ def toggle_active_playlists():
         try:
             playlist = playlists[selected]
             # TODO: make a toggle function to Storage
-            Storage.set_active_playlist(playlist.id, not Storage.is_active_playlist(playlist.id))
+            playlist.toggle_is_active()
         except ValueError:
             click.echo('Invalid input')
 
