@@ -7,10 +7,8 @@ class Composition:
 		self.playlist_ids = set()
 		self.name = name
 
-
 	def add_playlist(self, playlist: Playlist):
 		self.playlists.append(playlist)
-
 
 	def to_playlist(self, with_duplicates: bool=False):
 		if with_duplicates:
@@ -24,13 +22,11 @@ class Composition:
 		result.name = f"{self.name} ({playlist_names})"
 		return result
 
-
 	def _get_tracks_without_duplicates(self):
 		tracks = set()
 		for playlist in self.playlists:
 			tracks.update(playlist.tracks)
 		return list(tracks)
-		
 
 	def _get_tracks_with_duplicates(self):
 		tracks = []

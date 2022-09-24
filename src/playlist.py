@@ -58,5 +58,12 @@ class Playlist:
         playlist.is_active = Storage.is_active_playlist(playlist.id)
         playlist.isrc_map = {x.isrc : x for x in playlist.tracks if not x.is_local}
         return playlist
+
+    def get_menu_entry_string(self):
+        delimiter = '+' if self.is_active else ' '
+        return f'{delimiter} {self.name}'
+
+    def __str__(self):
+        return self.name
     
     

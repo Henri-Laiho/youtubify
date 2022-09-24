@@ -33,10 +33,6 @@ def is_track_acceptable(isrc):
         return True
 
 
-def get_track_duration_s(track):
-    return track['track']['duration_ms'] / 1000
-
-
 def matches(track_data, keyword):
     title = track_data['title']
     artists = track_data['artists']
@@ -145,8 +141,10 @@ def convert_active_playlists_to_youtube_links():
 def review_cli(browser=False):
     review(browser)
 
+
 def review_with_browser():
     review(True)
+
 
 def review(browser=False):
     state = 3
@@ -256,14 +254,6 @@ def list_manual():
     print("Total %d manually confirmed tracks" % i)
 
 
-def is_active(plist):
-    return Storage.is_active_playlist('0' if 'id' not in plist else plist['id'])
-
-
-def is_active_playlist(plist: Playlist):
-    return Storage.is_active_playlist(plist.id)
-
-
 @cli.command("list")
 def list_p():
     list_playlists()
@@ -274,19 +264,17 @@ def get_playlists():
         return [Playlist.from_json(p) for p in json.loads(f.read())]
 
 
-def list_playlists(playlists: [Playlist]=None, condition=is_active) -> [Playlist]:
+def list_playlists(playlists: [Playlist]=None) -> [Playlist]:
     if playlists is None:
         playlists = get_playlists()
     for i, playlist in enumerate(playlists):
-        delimiter = '+' if is_active_playlist(playlist) else ' '
-        click.echo(f'{i} {delimiter} {playlist.name}')
+        click.echo(f'{i} {playlist.get_menu_entry_string()}')
     return playlists
 
 
-def list_playlist_comps():
+def get_playlist_comp_names():
     data = []
     for i, plist in enumerate(Storage.playlist_compositions.keys()):
-        print('%4d' % i, plist)
         data.append(plist)
     return data
 
@@ -296,41 +284,46 @@ def compose():
     compose_playlists()
 
 
-def compose_playlists():
-    data = None
-    while 1:
-        comps = list_playlist_comps()
-        name = click.prompt('Enter playlist composition name to edit or create composition, or q to exit')
-        if name == '' or name == 'q':
-            break
-        try:
-            name = comps[int(name)]
-        except ValueError:
-            pass
-        if name in Storage.playlist_compositions:
-            comp = Storage.playlist_compositions[name]
-        else:
-            comp = {}
+def edit_composition(name, comp):
+    playlists = get_playlists()
+    for playlist in playlists:
+        playlist.is_active = playlist.id in comp
 
-        while 1:
-            click.echo('Editing playlist composition "%s"' % name)
-            data = list_playlists(data)
-            idx = click.prompt('Select playlist to toggle or enter q to exit or enter "delete" to delete the composition')
-            if idx == '' or idx == 'q':
-                Storage.playlist_compositions[name] = comp
-                break
-            elif idx == 'delete':
-                del Storage.playlist_compositions[name]
-                break
-            try:
-                playlist = data[int(idx)]
-                id_code = '0' if 'id' not in playlist else playlist['id']
-                if id_code in comp:
-                    del comp[id_code]
-                else:
-                    comp[id_code] = True
-            except ValueError:
-                print('Invalid input')
+    while True:
+        prompts = [p.get_menu_entry_string() for p in playlists] + ['Delete composition', 'Back']
+        selected_prompt_index = Menu(prompts).show()
+        selected_prompt = prompts[selected_prompt_index]
+
+        if selected_prompt == 'Back':
+            return
+        if selected_prompt == 'Delete composition':
+            del Storage.playlist_compositions[name]
+            return
+
+        selected_playlist = playlists[selected_prompt_index]
+        if selected_playlist.is_active:
+            del comp[selected_playlist.id]
+            selected_playlist.is_active = False
+        else:
+            comp[selected_playlist.id] = True
+            selected_playlist.is_active = True
+
+
+def compose_playlists():
+    while True:
+        compositions = get_playlist_comp_names()
+        prompts = compositions + ['Enter a new composition', 'Back']
+        selected_prompt_index = Menu(prompts).show()
+        selected_prompt = prompts[selected_prompt_index]
+        if selected_prompt == "Back":
+            return
+        if selected_prompt == 'Enter a new composition':
+            comp_name = click.prompt("Composition name")
+            comp = {}
+        else:
+            comp_name = selected_prompt
+            comp = Storage.playlist_compositions[comp_name]
+        edit_composition(comp_name, comp)
 
 
 @cli.command("activate")
@@ -384,7 +377,7 @@ def interactive():
         selected_prompt_index = Menu(prompts).show()
         selected_prompt = prompts[selected_prompt_index]
         prompt_commands[selected_prompt]()
-        if selected_prompt_index not in [6, 8]:
+        if selected_prompt_index not in [5, 7]:
             Storage.save()
             click.echo('Data saved.')
         click.echo()
