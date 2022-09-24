@@ -12,13 +12,6 @@ from src.universal_menu import Menu
 from src.track import Track
 
 
-@click.group(invoke_without_command=True)
-@click.pass_context
-def cli(ctx):
-    if ctx.invoked_subcommand is None:
-        interactive()
-
-
 def is_track_acceptable(isrc):
     if isrc not in Storage.isrc_to_access_url:
         return False
@@ -136,12 +129,6 @@ def convert_active_playlists_to_youtube_links():
         del Storage.active_playlist_ids[playlist_id]
 
 
-@cli.command("review")
-@click.option("--browser", default=True, help="Review links in browser")
-def review_cli(browser=False):
-    review(browser)
-
-
 def review_with_browser():
     review(True)
 
@@ -197,11 +184,6 @@ def review(browser=False):
         Storage.confirm(isrc)
 
 
-@cli.command
-def reset():
-    reset_track()
-
-
 def reset_track():
     tracks = search_track()
     if tracks is None:
@@ -239,11 +221,6 @@ def reset_track():
                 print('Invalid input')
 
 
-@cli.command
-def lsman():
-    list_manual()
-
-
 def list_manual():
     print("Manually confirmed tracks:")
     i = 0
@@ -252,11 +229,6 @@ def list_manual():
             print("%s; %s; %s" % (isrc, Storage.isrc_to_access_url[isrc], Storage.isrc_to_track_data[isrc]))
             i += 1
     print("Total %d manually confirmed tracks" % i)
-
-
-@cli.command("list")
-def list_p():
-    list_playlists()
 
 
 def get_playlists():
@@ -277,11 +249,6 @@ def get_playlist_comp_names():
     for i, plist in enumerate(Storage.playlist_compositions.keys()):
         data.append(plist)
     return data
-
-
-@cli.command
-def compose():
-    compose_playlists()
 
 
 def edit_composition(name, comp):
@@ -320,22 +287,11 @@ def compose_playlists():
         if selected_prompt == 'Enter a new composition':
             comp_name = click.prompt("Composition name")
             comp = {}
+            Storage.playlist_compositions[comp_name] = comp
         else:
             comp_name = selected_prompt
             comp = Storage.playlist_compositions[comp_name]
         edit_composition(comp_name, comp)
-
-
-@cli.command("activate")
-@click.argument('playlist_number', type=int)
-def activate_playlist(playlist_number: int):
-    toggle_playlist(playlist_number, True)
-
-
-@cli.command("deactivate")
-@click.argument('playlist_number', type=int)
-def deactivate_playlist(playlist_number):
-    toggle_playlist(playlist_number, False)
 
 
 def toggle_playlist(selected_playlist, make_active):
@@ -381,6 +337,51 @@ def interactive():
             Storage.save()
             click.echo('Data saved.')
         click.echo()
+
+
+@click.group(invoke_without_command=True)
+@click.pass_context
+def cli(ctx):
+    if ctx.invoked_subcommand is None:
+        interactive()
+
+
+@cli.command("activate")
+@click.argument('playlist_number', type=int)
+def activate_playlist(playlist_number: int):
+    toggle_playlist(playlist_number, True)
+
+
+@cli.command("deactivate")
+@click.argument('playlist_number', type=int)
+def deactivate_playlist(playlist_number):
+    toggle_playlist(playlist_number, False)
+
+
+@cli.command
+def compose():
+    compose_playlists()
+
+
+@cli.command("list")
+def list_p():
+    list_playlists()
+
+
+@cli.command
+def lsman():
+    list_manual()
+
+
+@cli.command
+def reset():
+    reset_track()
+
+
+@cli.command("review")
+@click.option("--browser", default=True, help="Review links in browser")
+def review_cli(browser=False):
+    review(browser)
 
 
 if __name__ == '__main__':
