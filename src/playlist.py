@@ -68,6 +68,10 @@ class Playlist:
     def is_in_composition(self, composition: dict):
         return self.id in composition
 
+    
+    def get_menu_string_with_active_state(self):
+        return f"{'+' if self.is_active else ' '} {self.name}"
+
 
     def __str__(self):
         return self.name

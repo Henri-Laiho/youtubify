@@ -245,7 +245,7 @@ def list_playlists(playlists: [Playlist]=None) -> [Playlist]:
     if playlists is None:
         playlists = get_playlists()
     for i, playlist in enumerate(playlists):
-        click.echo(f'{i} {playlist.get_menu_entry_string()}')
+        click.echo(f"{i:>5} {playlist.get_menu_string_with_active_state()}")
     return playlists
 
 
@@ -309,7 +309,7 @@ def toggle_active_playlists():
     active_playlist_menu_exit = False
     while not active_playlist_menu_exit:
         playlists = get_playlists()
-        selected = Menu([f"{'+' if d.is_active else ' '} {d.name}" for d in playlists] + ['Back']).show()
+        selected = Menu([d.get_menu_string_with_active_state() for d in playlists] + ['Back']).show()
         if selected == len(playlists):
             break
         try:
