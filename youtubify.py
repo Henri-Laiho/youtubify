@@ -362,6 +362,8 @@ def deactivate_playlist(playlist_number):
 @cli.command
 def compose():
     compose_playlists()
+    Storage.save()
+    print('Data saved.')
 
 
 @cli.command("list")
@@ -375,8 +377,16 @@ def lsman():
 
 
 @cli.command
+def convert():
+    convert_active_playlists_to_youtube_links()
+    Storage.save()
+    print('Data saved.')
+
+@cli.command
 def reset():
     reset_track()
+    Storage.save()
+    print('Data saved.')
 
 
 @cli.command("review")
@@ -388,5 +398,3 @@ def review_cli(browser=False):
 if __name__ == '__main__':
     storage_setup()
     cli()
-    Storage.save()
-    print('Data saved.')
