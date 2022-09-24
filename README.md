@@ -26,12 +26,12 @@ To run this bundle of scripts you need to:
 1. run `python spotify_import.py` and log in with your (free) spotify account
 2. run `python youtubify.py list` to list your playlists
 3. run `python youtubify.py activate <put playlist number here>` to select a playlist you want to download (e.g. `python youtubify.py activate 0` will select your liked songs). Run it again with a different number to add another playlist. Run `python youtubify.py list` again to see selected playlists indicated by `+`.
-4. run `./fast_youtubify.bat`, it will ask you to verify youtube links for ~5% of the songs. When it opens a youtube video with good quality, just press enter twice in the terminal, otherwise paste a better youtube (or soundcloud) link that matches the song into the terminal. You can skip this step and proceed to downloading 95% of the songs by typing `abort` in the terminal when it asks you to verify a link.
+4. run `./fast_youtubify.ps1`, it will ask you to verify youtube links for ~5% of the songs. When it opens a youtube video with good quality, just press enter twice in the terminal, otherwise paste a better youtube (or soundcloud) link that matches the song into the terminal. You can skip this step and proceed to downloading 95% of the songs by typing `abort` in the terminal when it asks you to verify a link.
 5. wait for the download to finish
 
 ## Advanced usage
 
-You can review all steps to download music with `cat fast_youtubify.bat`:
+You can review all steps to download music with `cat fast_youtubify.ps1`:
 
 1. `python spotify_import.py` saves data about your playlists on your local computer
 2. `python youtubify.py convert` finds Youtube links and saves them on your computer
