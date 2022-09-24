@@ -145,6 +145,8 @@ def convert_active_playlists_to_youtube_links():
 def review_cli(browser=False):
     review(browser)
 
+def review_with_browser():
+    review(True)
 
 def review(browser=False):
     state = 3
@@ -353,52 +355,38 @@ def toggle_playlist(selected_playlist, make_active):
     click.echo("Changes saved.")
 
 
+def toggle_active_playlists():
+    active_playlist_menu_exit = False
+    while not active_playlist_menu_exit:
+        playlists = get_playlists()
+        selected = Menu([f"{'+' if d.is_active else ' '} {d.name}" for d in playlists] + ['Back']).show()
+        if selected == len(playlists):
+            break
+        try:
+            playlist = playlists[selected]
+            # TODO: make a toggle function to Storage
+            Storage.set_active_playlist(playlist.id, not Storage.is_active_playlist(playlist.id))
+        except ValueError:
+            click.echo('Invalid input')
+
+
 def interactive():
-    main_menu_exit = False
-    while not main_menu_exit:
-        options = ['Toggle active playlists', 'Convert playlists to youtube', 'Review sus tracks',
-                   'Review sus tracks while automatically opening youtube pages', 'Reset confirmed track',
-                   'List manually confirmed tracks', 'Edit playlist compositions', 'Exit']
-        state = Menu(options).show() + 1
-        if state == 1:
-            active_playlist_menu_exit = False
-            while not active_playlist_menu_exit:
-                playlists = get_playlists()
-                selected = Menu([f"{'+' if d.is_active else ' '} {d.name}" for d in playlists] + ['Back']).show()
-                if selected == len(playlists):
-                    break
-                try:
-                    playlist = playlists[selected]
-                    # TODO: make a toggle function to Storage
-                    Storage.set_active_playlist(playlist.id, not Storage.is_active_playlist(playlist.id))
-                except ValueError:
-                    click.echo('Invalid input')
+    while True:
+        prompt_commands = {'Toggle active playlists': toggle_active_playlists,
+                   'Convert playlists to youtube': convert_active_playlists_to_youtube_links,
+                   'Review sus tracks': review,
+                   'Review sus tracks while automatically opening youtube pages': review_with_browser,
+                   'Reset confirmed track': reset_track,
+                   'List manually confirmed tracks': list_manual,
+                   'Edit playlist compositions': compose_playlists,
+                   'Exit': quit}
+        prompts = list(prompt_commands.keys())
+        selected_prompt_index = Menu(prompts).show()
+        selected_prompt = prompts[selected_prompt_index]
+        prompt_commands[selected_prompt]()
+        if selected_prompt_index not in [6, 8]:
             Storage.save()
             click.echo('Data saved.')
-        elif state == 2:
-            convert_active_playlists_to_youtube_links()
-            Storage.save()
-            click.echo('Data saved.')
-        elif state == 3:
-            review()
-            Storage.save()
-            click.echo('Data saved.')
-        elif state == 4:
-            review(browser=True)
-            Storage.save()
-            click.echo('Data saved.')
-        elif state == 5:
-            reset_track()
-            Storage.save()
-            click.echo('Data saved.')
-        elif state == 6:
-            list_manual()
-        elif state == 7:
-            compose_playlists()
-            Storage.save()
-            click.echo('Data saved.')
-        elif state == 8:
-            quit()
         click.echo()
 
 
