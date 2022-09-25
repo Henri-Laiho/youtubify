@@ -14,8 +14,7 @@ class Playlist:
         self.name = None
         self.is_active = False
         isrc_map = {}
-        
-        
+
     def to_format(self, format: PlaylistFormat, playlist_type, local_files_index : FileIndex, skip_local_files: bool):
         lines = []
         
@@ -45,8 +44,7 @@ class Playlist:
             if entry:
                 lines.append(entry)
         return lines
-    
-    
+
     @staticmethod
     def from_json(playlist_json):
         playlist = Playlist()
@@ -59,19 +57,19 @@ class Playlist:
         playlist.isrc_map = {x.isrc : x for x in playlist.tracks if not x.is_local}
         return playlist
 
-
     def toggle_is_active(self):
         self.is_active = not Storage.is_active_playlist(self.id)
         Storage.set_active_playlist(self.id, self.is_active)
-        
 
     def is_in_composition(self, composition: dict):
         return self.id in composition
 
-    
     def get_menu_string_with_active_state(self):
         return f"{'+' if self.is_active else ' '} {self.name}"
 
+    # TODO: use composition class instead of dict
+    def get_menu_string_with_composition_status(self, composition: dict):
+        return f"{'+' if self.is_in_composition(composition) else ' '} {self.name}"
 
     def __str__(self):
         return self.name

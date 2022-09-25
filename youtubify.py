@@ -260,7 +260,7 @@ def edit_composition(name, comp):
     playlists = get_playlists()
 
     while True:
-        prompts = [f"{'+' if p.is_in_composition(comp) else ' '} {p.name}" for p in playlists] + ['Delete composition', 'Back']
+        prompts = [p.get_menu_string_with_composition_status() for p in playlists] + ['Delete composition', 'Back']
         selected_prompt_index = Menu(prompts).show()
         selected_prompt = prompts[selected_prompt_index]
 
