@@ -1,6 +1,6 @@
 import os
 
-from src.persistance.track_data import Storage
+from src.persistance.storage import Storage
 from src.track import Track
 from src.playlist_format import PlaylistFormat
 from src.file_index import FileIndex

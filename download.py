@@ -4,7 +4,7 @@ import colorama
 
 from src import conf
 from src.downloader import load_spotify_playlists, init_yt_isrc_tracks, download_playlist, YT, ISRC, download_version
-from src.persistance.track_data import Storage, storage_setup
+from src.persistance.storage import Storage, storage_setup
 from youtubify import is_track_acceptable
 
 

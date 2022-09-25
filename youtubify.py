@@ -4,7 +4,7 @@ import os
 import webbrowser
 
 from src import conf
-from src.persistance.track_data import Storage, SusCode, storage_setup, describe_track
+from src.persistance.storage import Storage, SusCode, storage_setup, describe_track
 from src.playlist import Playlist
 from src.search.Search import isrc_search, get_search_url, get_search_terms
 from src.ytdownload import get_filename_ext

@@ -1,7 +1,7 @@
 import argparse
 
 from src import conf
-from src.persistance.track_data import Storage, storage_setup
+from src.persistance.storage import Storage, storage_setup
 from src.spotify import spotify_backup
 from src.utils.bunch import Bunch
 

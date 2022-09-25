@@ -9,7 +9,7 @@ import colorama
 import youtube_dl
 
 from src import conf
-from src.persistance.track_data import Storage
+from src.persistance.storage import Storage
 from src.ytdownload import YtDownload
 from src.playlist import Playlist
 

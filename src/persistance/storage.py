@@ -19,7 +19,7 @@ class SusCode:
 def shorten(text: str, a=3):
     return text if len(text) < a else text[::len(text) // a]
 
-
+# TODO: incorporate this into Track class
 def describe_track(isrc):
     data = Storage.isrc_to_track_data[isrc]
     return '%s - %s' % (', '.join(data['artists']), data['title'])

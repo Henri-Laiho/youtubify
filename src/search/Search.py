@@ -3,7 +3,7 @@ import Levenshtein
 import numpy as np
 from youtube_search import YoutubeSearch
 
-from src.persistance.track_data import Storage, SusCode
+from src.persistance.storage import Storage, SusCode
 
 BASE_URL = "https://youtube.com"
 

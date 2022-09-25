@@ -15,7 +15,7 @@ except ImportError:
     print('Copy conf_playlist_export.py.example to conf_playlist_export.py and modify if needed.')
     exit(-1)
 from src import conf, downloader
-from src.persistance.track_data import storage_setup, Storage
+from src.persistance.storage import storage_setup, Storage
 from src.ytdownload import ensure_dir, get_filename_ext
 
 try:
