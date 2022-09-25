@@ -58,7 +58,10 @@ class Playlist:
         return playlist
 
     def toggle_is_active(self):
-        self.is_active = not Storage.is_active_playlist(self.id)
+        self.set_active(not Storage.is_active_playlist(self.id))
+
+    def set_active(self, is_active):
+        self.is_active = is_active
         Storage.set_active_playlist(self.id, self.is_active)
 
     def is_in_composition(self, composition: dict):

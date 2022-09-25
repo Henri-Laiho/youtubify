@@ -260,7 +260,7 @@ def edit_composition(name, comp):
     playlists = get_playlists()
 
     while True:
-        prompts = [p.get_menu_string_with_composition_status() for p in playlists] + ['Delete composition', 'Back']
+        prompts = [p.get_menu_string_with_composition_status(comp) for p in playlists] + ['Delete composition', 'Back']
         selected_prompt_index = Menu(prompts).show()
         selected_prompt = prompts[selected_prompt_index]
 
@@ -295,29 +295,16 @@ def compose_playlists():
         edit_composition(comp_name, comp)
 
 
-def toggle_playlist(selected_playlist, make_active):
-    with open(conf.playlists_file, "r") as f:
-        data = json.loads(f.read())
-    playlist = data[selected_playlist]
-    id_code = '0' if 'id' not in playlist else playlist['id']
-    Storage.set_active_playlist(id_code, make_active)
-    Storage.save()
-    click.echo("Changes saved.")
-
-
 def toggle_active_playlists():
     active_playlist_menu_exit = False
     while not active_playlist_menu_exit:
         playlists = get_playlists()
-        selected = Menu([d.get_menu_string_with_active_state() for d in playlists] + ['Back']).show()
-        if selected == len(playlists):
-            break
-        try:
-            playlist = playlists[selected]
-            # TODO: make a toggle function to Storage
-            playlist.toggle_is_active()
-        except ValueError:
-            click.echo('Invalid input')
+        prompts = [p.get_menu_string_with_active_state() for p in playlists] + ['Back']
+        selected = Menu(prompts).show()
+        selected_prompt = prompts[selected]
+        if selected_prompt == 'Back':
+            return
+        playlists[selected].toggle_is_active()
 
 
 def interactive():
@@ -350,13 +337,17 @@ def cli(ctx):
 @cli.command("activate")
 @click.argument('playlist_number', type=int)
 def activate_playlist(playlist_number: int):
-    toggle_playlist(playlist_number, True)
+    get_playlists()[playlist_number].set_active(True)
+    Storage.save()
+    print('Data saved.')
 
 
 @cli.command("deactivate")
 @click.argument('playlist_number', type=int)
 def deactivate_playlist(playlist_number):
-    toggle_playlist(playlist_number, False)
+    get_playlists()[playlist_number].set_active(False)
+    Storage.save()
+    print('Data saved.')
 
 
 @cli.command
@@ -393,6 +384,8 @@ def reset():
 @click.option("--browser", default=True, help="Review links in browser")
 def review_cli(browser=False):
     review(browser)
+    Storage.save()
+    print('Data saved.')
 
 
 if __name__ == '__main__':
