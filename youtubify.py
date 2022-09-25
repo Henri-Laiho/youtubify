@@ -124,7 +124,7 @@ def convert_active_playlists_to_youtube_links():
     f.close()
 
     playlists_to_disable = []
-    data_ids = {'0' if 'id' not in plist else plist['id']: plist for plist in data}
+    data_ids = {plist['id']: plist for plist in data}
     for playlist_id in Storage.active_playlist_ids:
         convert_playlist_tracks_to_youtube_links(playlist_id, data_ids, playlists_to_disable)
 

@@ -1,6 +1,4 @@
-# playlists.json --format=json --dump=liked,playlists
-
-import argparse
+﻿import argparse
 import codecs
 import http.client
 import http.server
@@ -24,7 +22,7 @@ class SpotifyAPI:
         self._auth = auth
 
     # Gets a resource from the Spotify API and returns the object.
-    def get(self, url, params={}, tries=3, on_error='exit'):
+    def get(self, url, params={}, tries=5, on_error='exit'):
         # Construct the correct URL.
         if not url.startswith('https://api.spotify.com/v1/'):
             url = 'https://api.spotify.com/v1/' + url
@@ -32,8 +30,10 @@ class SpotifyAPI:
             url += ('&' if '?' in url else '?') + urllib.parse.urlencode(params)
 
         # Try the sending off the request a specified number of times before giving up.
-        for _ in range(tries):
+        for _try in range(tries):
             try:
+                if _try > 0:
+                    logging.info('Trying again...')
                 req = urllib.request.Request(url)
                 req.add_header('Authorization', 'Bearer ' + self._auth)
                 res = urllib.request.urlopen(req)
@@ -42,8 +42,9 @@ class SpotifyAPI:
             except Exception as err:
                 logging.info('Couldn\'t load URL: {} ({})'.format(url, err))
                 time.sleep(2)
-                logging.info('Trying again...')
+                
         if on_error == 'exit':
+            logging.info('Exiting...')
             sys.exit(1)
         return None
 
@@ -126,92 +127,3 @@ class SpotifyAPI:
     class _Authorization(Exception):
         def __init__(self, access_token):
             self.access_token = access_token
-
-
-def main(args):
-    # If they didn't give a filename, then just prompt them. (They probably just double-clicked.)
-    while not args.file:
-        args.file = input('Enter a file name (e.g. playlists.txt): ')
-        args.format = args.file.split('.')[-1]
-
-    # Log into the Spotify API.
-    if args.token:
-        spotify = SpotifyAPI(args.token)
-    else:
-        spotify = SpotifyAPI.authorize(client_id='5c098bcc800e45d49e476265bc9b6934',
-                                       scope='playlist-read-private playlist-read-collaborative user-library-read')
-
-    # Get the ID of the logged in user.
-    logging.info('Loading user info...')
-    me = spotify.get('me', tries=1, on_error='return')
-    if me is None:
-        return None
-    logging.info('Logged in as {display_name} ({id})'.format(**me))
-
-    playlists = []
-
-    def process_isrc(tracks):
-        if 'rm_dash_in_isrc' in args.dump:
-            for i in range(len(tracks)):
-                if 'isrc' in tracks[i]['track']['external_ids']:
-                    isrc = tracks[i]['track']['external_ids']['isrc']
-                    tracks[i]['track']['external_ids']['isrc'] = isrc.replace('-', '')
-        return tracks
-
-    # List liked songs
-    if 'liked' in args.dump:
-        logging.info('Loading liked songs...')
-        liked_tracks = spotify.list('users/{user_id}/tracks'.format(user_id=me['id']), {'limit': 50})
-        playlists += [{'name': 'Liked Songs', 'id': me['id'], 'snapshot_id': None, 'tracks': process_isrc(liked_tracks)}]
-
-    # List all playlists and the tracks in each playlist
-    if 'playlists' in args.dump:
-        logging.info('Loading playlists...')
-        playlist_data = spotify.list('users/{user_id}/playlists'.format(user_id=me['id']), {'limit': 50})
-        logging.info(f'Found {len(playlists)} playlists')
-
-        # List all tracks in each playlist
-        for playlist in playlist_data:
-            logging.info('Loading playlist: {name} ({tracks[total]} songs)'.format(**playlist))
-            playlist['tracks'] = process_isrc(spotify.list(playlist['tracks']['href'], {'limit': 100}))
-        playlists += playlist_data
-
-    # Write the file.
-    logging.info('Writing files...')
-    with open(args.file, 'w', encoding='utf-8') as f:
-        # JSON file.
-        if args.format == 'json':
-            json.dump(playlists, f)
-
-        # Tab-separated file.
-        else:
-            for playlist in playlists:
-                f.write(playlist['name'] + '\r\n')
-                for track in playlist['tracks']:
-                    if track['track'] is None:
-                        continue
-                    f.write('{name}\t{artists}\t{album}\t{uri}\r\n'.format(
-                        uri=track['track']['uri'],
-                        name=track['track']['name'],
-                        artists=', '.join([artist['name'] for artist in track['track']['artists']]),
-                        album=track['track']['album']['name']
-                    ))
-                f.write('\r\n')
-    logging.info('Wrote file: ' + args.file)
-    return spotify._auth
-
-
-if __name__ == '__main__':
-    # Parse arguments.
-    parser = argparse.ArgumentParser(description='Exports your Spotify playlists. By default, opens a browser window '
-                                                 + 'to authorize the Spotify Web API, but you can also manually specify'
-                                                 + ' an OAuth token with the --token option.')
-    parser.add_argument('--token', metavar='OAUTH_TOKEN', help='use a Spotify OAuth token (requires the '
-                                                               + '`playlist-read-private` permission)')
-    parser.add_argument('--dump', default='playlists',
-                        choices=['liked,playlists', 'playlists,liked', 'playlists', 'liked'],
-                        help='dump playlists or liked songs, or both (default: playlists)')
-    parser.add_argument('--format', default='txt', choices=['json', 'txt'], help='output format (default: txt)')
-    parser.add_argument('file', help='output filename', nargs='?')
-    args = parser.parse_args()
-    main(args)

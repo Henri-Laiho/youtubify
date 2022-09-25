@@ -9,11 +9,12 @@ from src.conf import spotify_unsupported_preview_suffix
 
 class Playlist:
     def __init__(self):
+        self.snapshot_id = None
         self.tracks = []
         self.id = None
         self.name = None
         self.is_active = False
-        isrc_map = {}
+        self.isrc_map = {}
 
     def to_format(self, format: PlaylistFormat, playlist_type, local_files_index : FileIndex, skip_local_files: bool):
         lines = []
@@ -48,14 +49,20 @@ class Playlist:
     @staticmethod
     def from_json(playlist_json):
         playlist = Playlist()
-        playlist.tracks = [Track(x) for x in playlist_json['tracks']]
-        # TODO: liked songs id = user id
-        playlist.id = playlist_json['id'] if 'id' in playlist_json else '0'
-        playlist.name = playlist_json['name']
+        playlist.set_tracks(playlist_json['tracks'])
+        playlist.set_metadata(playlist_json)
         # TODO: remove or consolidate accessing Storage outside this class
         playlist.is_active = Storage.is_active_playlist(playlist.id)
-        playlist.isrc_map = {x.isrc : x for x in playlist.tracks if not x.is_local}
         return playlist
+
+    def set_metadata(self, playlist_json):
+        self.id = playlist_json['id']
+        self.name = playlist_json['name']
+        self.snapshot_id = playlist_json['snapshot_id']
+
+    def set_tracks(self, tracks_json):
+        self.tracks = [Track(x) for x in tracks_json]
+        self.isrc_map = {x.isrc : x for x in self.tracks if not x.is_local}
 
     def toggle_is_active(self):
         self.set_active(not Storage.is_active_playlist(self.id))

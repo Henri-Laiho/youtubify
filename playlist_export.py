@@ -50,8 +50,6 @@ playlist_format = PlaylistFormat('m3u8', "#EXTM3U", format_m3u8, '.m3u8')
 
 
 def add_compositions(playlists_json):
-    # TODO: enter id in spotify_import.py script
-    playlists_json[0]['id'] = '0'
     # TODO: parse playlists_json to Playlist objects in another function
     playlists = [Playlist.from_json(x) for x in playlists_json]
     id_to_plist = {x.id : x for x in playlists}
