@@ -330,13 +330,14 @@ def interactive():
 @click.group(invoke_without_command=True)
 @click.pass_context
 def cli(ctx):
+    storage_setup()
     if ctx.invoked_subcommand is None:
         interactive()
 
 
 @cli.command("activate")
 @click.argument('playlist_number', type=int)
-def activate_playlist(playlist_number: int):
+def activate(playlist_number: int):
     get_playlists()[playlist_number].set_active(True)
     Storage.save()
     print('Data saved.')
@@ -357,8 +358,8 @@ def compose():
     print('Data saved.')
 
 
-@cli.command("list")
-def list_p():
+@cli.command
+def ls():
     list_playlists()
 
 
@@ -369,9 +370,11 @@ def lsman():
 
 @cli.command
 def convert():
+    storage_setup()
     convert_active_playlists_to_youtube_links()
     Storage.save()
     print('Data saved.')
+
 
 @cli.command
 def reset():
