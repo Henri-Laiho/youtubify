@@ -94,41 +94,31 @@ def convert_track_to_youtube_link(track: Track):
         Storage.add_access_url(track.isrc, track.download_url)
 
 
-def convert_playlist_tracks_to_youtube_links(playlist_id, data_ids, playlists_to_disable):
-    if Storage.is_active_playlist(playlist_id):
-        temp_name_to_isrc = dict()
-        if playlist_id not in data_ids:
-            print("Playlist with id %s not found. Deactivating playlist." % playlist_id)
-            if len(Storage.active_playlist_ids) - len(playlists_to_disable) > 1:
-                playlists_to_disable.append(playlist_id)
-            return
-        playlist = data_ids[playlist_id]
+def convert_playlist_tracks_to_youtube_links(playlist: Playlist):
+    temp_name_to_isrc = dict()
+    tracks = playlist.tracks
 
-        tracks = list(map(Track, playlist['tracks']))
+    for track in tracks:
+        store_track_data(track, temp_name_to_isrc)
 
-        for track in tracks:
-            store_track_data(track, temp_name_to_isrc)
+    number_of_tracks = len(tracks)
 
-        number_of_tracks = len(tracks)
-
-        for i, track in enumerate(tracks):
-            # TODO: use logger
-            print('\rProcessing %s: %d/%d' % (playlist['name'], i, number_of_tracks), end='')
-            convert_track_to_youtube_link(track)
-        print()
+    for i, track in enumerate(tracks):
+        # TODO: use logger
+        print(f'\rProcessing {playlist.name}: {i}/{number_of_tracks}', end='')
+        convert_track_to_youtube_link(track)
+    print()
 
 
 def convert_active_playlists_to_youtube_links():
     with open(conf.playlists_file, 'r') as f:
-        data = json.loads(f.read())
+        playlists_json = json.loads(f.read())
+    playlists = map(Playlist.from_json, playlists_json)
 
-    playlists_to_disable = []
-    data_ids = {plist['id']: plist for plist in data}
-    for playlist_id in Storage.active_playlist_ids:
-        convert_playlist_tracks_to_youtube_links(playlist_id, data_ids, playlists_to_disable)
-
-    for playlist_id in playlists_to_disable:
-        del Storage.active_playlist_ids[playlist_id]
+    # TODO: This code does not use Storage anymore. Think how to link up with Storage if even needed.
+    for playlist in playlists:
+        if not playlist.is_active: continue
+        convert_playlist_tracks_to_youtube_links(playlist)
 
 
 def review_with_browser():
