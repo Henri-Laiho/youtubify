@@ -110,9 +110,7 @@ def convert_playlist_tracks_to_youtube_links(playlist: Playlist):
 
 
 def convert_active_playlists_to_youtube_links():
-    with open(conf.playlists_file, 'r') as f:
-        playlists_json = json.loads(f.read())
-    playlists = map(Playlist.from_json, playlists_json)
+    playlists = get_playlists()
 
     # TODO: This code does not use Storage anymore. Think how to link up with Storage if even needed.
     for playlist in playlists:
@@ -219,7 +217,7 @@ def list_manual():
 def get_playlists() -> [Playlist]:
     if len(singleton_spotify_playlists) == 0:
         with open(conf.playlists_file, "r") as f:
-            singleton_spotify_playlists.extend([Playlist.from_json(p) for p in json.loads(f.read())])
+            singleton_spotify_playlists.extend(map(Playlist.from_json, json.loads(f.read())))
     return singleton_spotify_playlists
 
 

@@ -76,11 +76,10 @@ class SpotifyApiClient:
     def get_user(self):
         # Get the ID of the logged in user.
         logging.info('Loading user info...')
-        me = spotify.get('me', tries=1, on_error='return')
+        me = spotify.get('me', tries=3, on_error='return')
         if not me:
             #TODO: handle properly
             raise RuntimeError("Error when accessing Spotify API")
         logging.info('Logged in as {display_name} ({id})'.format(**me))
-        id, display_name = me.id, me.display_name
 
-        return User(id, display_name, self._spotify._auth)
+        return User(me['id'], me['display_name'], self._spotify._auth)
