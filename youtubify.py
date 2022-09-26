@@ -52,8 +52,8 @@ def search_track(max_results=100):
         print('No tracks match search.')
 
 
-def store_track_data(track: Track, temp_name_to_isrc):
-
+def store_track_data(track: Track):
+    temp_name_to_isrc = {}
     if track.is_local:
         return
     if is_filename_not_unique(track, temp_name_to_isrc):
@@ -94,17 +94,16 @@ def convert_track_to_youtube_link(track: Track):
 
 
 def convert_playlist_tracks_to_youtube_links(playlist: Playlist):
-    temp_name_to_isrc = dict()
     tracks = playlist.tracks
-
     for track in tracks:
-        store_track_data(track, temp_name_to_isrc)
+        store_track_data(track, {})
 
     number_of_tracks = len(tracks)
 
     for i, track in enumerate(tracks):
         # TODO: use logger
         print(f'\rProcessing {playlist.name}: {i}/{number_of_tracks}', end='')
+        # TODO: solve deleted playlists hanging out in Storage, deimplement soft delete?
         convert_track_to_youtube_link(track)
     print()
 
@@ -123,8 +122,9 @@ def review_with_browser():
 
 
 def review(browser=False):
-    track_count = len(Storage.sus_tracks)
-    for i, isrc in enumerate(Storage.sus_tracks):
+    tracks = Storage.sus_tracks.copy()
+    track_count = len(tracks)
+    for i, isrc in enumerate(tracks):
         if not needs_converting(isrc):
             continue
         sus_track = SusTrack(isrc)
@@ -146,11 +146,10 @@ def review(browser=False):
             selected_prompt = prompts[selected]
             prompt_commands[selected_prompt](sus_track)
             if selected == 4: return
-            if selected in [0, 2, 3]:
-                break
             if selected == 1 and not sus_track.url:
                 print("Old url missing. Type 'skip' to skip")
                 continue
+            break
 
 
 def ignore_sus_track(track):
@@ -161,7 +160,7 @@ def get_new_link(track):
     new_link = click.prompt("Enter new link")
     confirmation = click.confirm(f"New link set as {new_link}")
     if confirmation:
-        isrc = track['isrc']
+        isrc = track.isrc
         Storage.reset_track(isrc, force=True)
         Storage.add_access_url(isrc, new_link)
         Storage.confirm(isrc)
@@ -169,39 +168,32 @@ def get_new_link(track):
 
 def reset_track():
     tracks = search_track()
-    if tracks is None:
-        print('')
-        return None
-    for i, (isrc, match) in enumerate(tracks):
-        print('%d. %s (%d)' % (len(tracks) - i, describe_track(isrc), match))
-    while 1:
-        idx = input("Select track or enter 'q' to return to menu: ")
-        if idx == 'q':
-            break
-        elif idx == '':
-            pass
-        else:
-            try:
-                isrc, _ = tracks[len(tracks) - int(idx)]
-                confirm = input('Are you sure to reset %s (Y/n): ' % describe_track(isrc))
-                if confirm.lower() != 'n':
+    if tracks is None: return
 
-                    if isrc in Storage.isrc_to_track_data:
-                        data = Storage.isrc_to_track_data[isrc]
-                        newfilename = data['filename']
-                        fname_ext = get_filename_ext(newfilename, conf.downloaded_audio_folder)
-                        if fname_ext is not None:
-                            newpath_ext = os.path.join(conf.downloaded_audio_folder, fname_ext)
-                            os.remove(newpath_ext)
+    track_count = len(tracks)
+    prompts = [f'{describe_track(isrc)} ({match})' for i, (isrc, match) in enumerate(tracks)] + ['Back']
+    selected = Menu(prompts).show()
 
-                    Storage.reset_track(isrc, force=True)
-                    url = input("Enter new track url or 'q' to return to menu: ")
-                    if url != '' and url != 'q':
-                        Storage.add_access_url(isrc, url)
-                        Storage.confirm(isrc)
-                    break
-            except ValueError:
-                print('Invalid input')
+    if selected == track_count: return
+
+    isrc, _ = tracks[selected]
+    confirmed = click.confirm(f'Are you sure to reset {describe_track(isrc)} (Y/n)', default=True)
+
+    if not confirmed: return
+
+    if isrc in Storage.isrc_to_track_data:
+        data = Storage.isrc_to_track_data[isrc]
+        newfilename = data['filename']
+        fname_ext = get_filename_ext(newfilename, conf.downloaded_audio_folder)
+        if fname_ext is not None:
+            newpath_ext = os.path.join(conf.downloaded_audio_folder, fname_ext)
+            os.remove(newpath_ext)
+
+    Storage.reset_track(isrc, force=True)
+    url = input("Enter new track url or 'q' to return to menu: ")
+    if url != '' and url != 'q':
+        Storage.add_access_url(isrc, url)
+        Storage.confirm(isrc)
 
 
 def list_manual():
