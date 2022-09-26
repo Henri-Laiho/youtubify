@@ -26,6 +26,22 @@ def path_encode(path, encoding=nice_path_encoding):
         return path
 
 
+class SusTrack:
+    def __init__(self, isrc):
+        self.isrc = isrc
+        self.track = Storage.sus_tracks[self.isrc]
+        self.sus_code = self.track['code']
+        self.title = self.track['title']
+        self.artists = self.track['artists']
+        self.url = Storage.isrc_to_access_url[self.isrc]
+
+    def __str__(self):
+        artists_str = ', '.join(self.artists)
+        sus_str = f'Sus-code: {self.sus_code:<22}'
+        track_str = f'Track {artists_str} - {self.title}'
+        return f'{sus_str}, {track_str}, isrc: {self.isrc}, current url: {self.url}'
+
+
 class Track:
     def __init__(self, track_json):
         track = track_json['track']

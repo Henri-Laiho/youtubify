@@ -9,8 +9,7 @@ from src.playlist import Playlist
 from src.search.Search import isrc_search, get_search_url, get_search_terms
 from src.ytdownload import get_filename_ext
 from src.universal_menu import Menu
-from src.track import Track
-
+from src.track import Track, SusTrack
 
 singleton_spotify_playlists = []
 
@@ -126,53 +125,47 @@ def review_with_browser():
 
 
 def review(browser=False):
-    state = 3
-    added = []
-    i = 0
-    for isrc in Storage.sus_tracks:
-        i += 1
-        sus_code = Storage.sus_tracks[isrc]['code']
-        if needs_converting(isrc):
-            track = Storage.isrc_to_track_data[isrc]
-            name = track['title']
-            artists = track['artists']
-            url = Storage.isrc_to_access_url[isrc]
-            print('%d/%d Sus-code: %s, Track %s - %s, isrc: %s, current url: %s' % (i, len(Storage.sus_tracks),
-                                                                                    sus_code.ljust(22),
-                                                                                    ', '.join(artists), name,
-                                                                                    isrc, url))
+    track_count = len(Storage.sus_tracks)
+    for i, isrc in enumerate(Storage.sus_tracks):
+        if not needs_converting(isrc):
+            continue
+        sus_track = SusTrack(isrc)
+        print(f'{i}/{track_count} {sus_track}')
 
-            if browser:
-                if isinstance(url, str):
-                    webbrowser.open(url)
-                webbrowser.open(get_search_url(get_search_terms(artists, name)))
+        if browser:
+            if not sus_track.url:
+                webbrowser.open(sus_track.url)
+            webbrowser.open(get_search_url(get_search_terms(sus_track.artists, sus_track.title)))
 
-            while 1:
-                text = input('Enter new link, nothing to confirm old link, "skip" to skip this time, "ignore" to ignore next times or "abort" to return to main menu:\n')
-                if text == 'skip':
-                    break
-                elif text == 'ignore':
-                    Storage.ignore_track(isrc)
-                    break
-                elif text == 'abort':
-                    state = 0
-                    break
-                elif text == '' or text.startswith('http') or 'youtube.com' in text:
-                    if text == '':
-                        if isinstance(url, str):
-                            text = url
-                        else:
-                            print("Old url missing. Type 'skip' to skip")
-                            continue
-                    confirm = input('Confirm link %s (Y/n): ' % text)
-                    if confirm.lower() != 'n':
-                        added.append((isrc, text))
-                        break
-            if state != 3:
+        while True:
+            prompt_commands = {'Enter new link': get_new_link,
+                               'Confirm old link': lambda x: 1,
+                               'Skip': lambda x: 1,
+                               'Ignore': ignore_sus_track,
+                               'Back to main menu': lambda x: 1}
+            prompts = list(prompt_commands)
+            selected = Menu(prompts).show()
+            selected_prompt = prompts[selected]
+            prompt_commands[selected_prompt](sus_track)
+            if selected == 4: return
+            if selected in [0, 2, 3]:
                 break
-    for isrc, text in added:
+            if selected == 1 and not sus_track.url:
+                print("Old url missing. Type 'skip' to skip")
+                continue
+
+
+def ignore_sus_track(track):
+    Storage.ignore_track(track.isrc)
+
+
+def get_new_link(track):
+    new_link = click.prompt("Enter new link")
+    confirmation = click.confirm(f"New link set as {new_link}")
+    if confirmation:
+        isrc = track['isrc']
         Storage.reset_track(isrc, force=True)
-        Storage.add_access_url(isrc, text)
+        Storage.add_access_url(isrc, new_link)
         Storage.confirm(isrc)
 
 
