@@ -158,16 +158,16 @@ class Storage:
             raise RuntimeError('artists must be string or list')
 
     @staticmethod
-    def load(file=None):
-        if file is None:
-            file = Storage._datafile
+    def load(filename=None):
+        if filename is None:
+            filename = Storage._datafile
         else:
-            Storage._datafile = file
-        if os.path.isfile(file):
-            f = open(file, "r")
-            data = json.loads(f.read())
+            Storage._datafile = filename
+        if os.path.isfile(filename):
+            with open(filename, 'r') as f:
+                data = json.loads(f.read())
             Storage.load_dict(data=data)
-            Storage._last_load = file
+            Storage._last_load = filename
         else:
             print('Data file not found; starting with empty database.')
 

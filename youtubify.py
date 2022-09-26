@@ -119,9 +119,8 @@ def convert_playlist_tracks_to_youtube_links(playlist_id, data_ids, playlists_to
 
 
 def convert_active_playlists_to_youtube_links():
-    f = open(conf.playlists_file, "r")
-    data = json.loads(f.read())
-    f.close()
+    with open(conf.playlists_file, 'r') as f:
+        data = json.loads(f.read())
 
     playlists_to_disable = []
     data_ids = {plist['id']: plist for plist in data}
