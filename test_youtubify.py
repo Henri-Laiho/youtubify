@@ -30,12 +30,10 @@ def test_convert():
         convert_result = runner.invoke(convert)
         isrc_to_data = get_isrc_to_data_json()
         ytfy_data = get_ytfy_data_json()
-
     assert isrc_to_data == isrc_to_data_liked_songs_active
     assert ytfy_data == ytfy_data_liked_songs_active
     assert convert_result.stdout_bytes == b'Data file not found; starting with empty database.\n\rProcessing Liked Songs: 0/1\nData saved.\n'
     assert convert_result.exit_code == 0
-
 
 
 def test_lsman():

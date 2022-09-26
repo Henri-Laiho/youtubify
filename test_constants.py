@@ -1,6 +1,8 @@
 playlist_json = """[
 {
   "name": "Liked Songs",
+  "id": "pungpearu", 
+  "snapshot_id": null,
   "tracks": [
     {
       "added_at": "2019-06-02T11:22:29Z",
@@ -252,5 +254,5 @@ playlist_json = """[
 }
 ]
 """
-isrc_to_data_liked_songs_active = """{"spotify_token": null, "isrc_to_access_url": {}, "sus_tracks": {}, "is_autogen": {}, "manual_confirm": {}, "isrc_to_track_data": {}, "metadata_version": {}, "ignored_tracks": {}, "active_playlist_ids": {"0": true}, "isrc_local_downloaded_status": {}, "playlist_compositions": {}}"""
-ytfy_data_liked_songs_active = r"""{"spotify_token": null, "isrc_to_access_url": {"DEA891700257": "https://youtube.com/watch?v=r5wyaauKkjg"}, "sus_tracks": {}, "is_autogen": {}, "manual_confirm": {}, "isrc_to_track_data": {"DEA891700257": {"artists": ["Lars Danielsson", "Gr\u00e9gory Privat", "John Parricelli", "Magnus \u00d6str\u00f6m"], "title": "Lviv", "filename": "Lars Danielsson - Lviv"}}, "metadata_version": {}, "ignored_tracks": {}, "active_playlist_ids": {"0": true}, "isrc_local_downloaded_status": {}, "playlist_compositions": {}}"""
+isrc_to_data_liked_songs_active = """{"spotify_token": null, "isrc_to_access_url": {}, "sus_tracks": {}, "is_autogen": {}, "manual_confirm": {}, "isrc_to_track_data": {}, "metadata_version": {}, "ignored_tracks": {}, "active_playlist_ids": {"pungpearu": true}, "isrc_local_downloaded_status": {}, "playlist_compositions": {}}"""
+ytfy_data_liked_songs_active = r"""{"spotify_token": null, "isrc_to_access_url": {"DEA891700257": "https://youtube.com/watch?v=r5wyaauKkjg"}, "sus_tracks": {}, "is_autogen": {}, "manual_confirm": {}, "isrc_to_track_data": {"DEA891700257": {"artists": ["Lars Danielsson", "Gr\u00e9gory Privat", "John Parricelli", "Magnus \u00d6str\u00f6m"], "title": "Lviv", "filename": "Lars Danielsson - Lviv"}}, "metadata_version": {}, "ignored_tracks": {}, "active_playlist_ids": {"pungpearu": true}, "isrc_local_downloaded_status": {}, "playlist_compositions": {}}"""
