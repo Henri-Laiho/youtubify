@@ -148,11 +148,10 @@ def review(browser=False):
             selected_prompt = prompts[selected]
             prompt_commands[selected_prompt](sus_track)
             if selected == 4: return
-            if selected in [0, 2, 3]:
-                break
             if selected == 1 and not sus_track.url:
                 print("Old url missing. Type 'skip' to skip")
                 continue
+            break
 
 
 def ignore_sus_track(track):
