@@ -52,8 +52,7 @@ def search_track(max_results=100):
         print('No tracks match search.')
 
 
-def store_track_data(track: Track):
-    temp_name_to_isrc = {}
+def store_track_data(track: Track, temp_name_to_isrc):
     if track.is_local:
         return
     if is_filename_not_unique(track, temp_name_to_isrc):
@@ -94,9 +93,11 @@ def convert_track_to_youtube_link(track: Track):
 
 
 def convert_playlist_tracks_to_youtube_links(playlist: Playlist):
+    temp_name_to_isrc = dict()
     tracks = playlist.tracks
+
     for track in tracks:
-        store_track_data(track, {})
+        store_track_data(track, temp_name_to_isrc)
 
     number_of_tracks = len(tracks)
 
