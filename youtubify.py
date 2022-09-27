@@ -4,8 +4,9 @@ import os
 import webbrowser
 
 from src import conf
-from src.persistance.storage import Storage, SusCode, storage_setup, describe_track
+from src.persistance.storage import Storage, SusCode, storage_setup
 from src.playlist import Playlist
+from src.search import Search
 from src.search.Search import isrc_search, get_search_url, get_search_terms
 from src.ytdownload import get_filename_ext
 from src.universal_menu import Menu
@@ -35,21 +36,20 @@ def matches(track_data, keyword):
 
 
 def search_track(max_results=100):
+    # TODO: think about reimplementing match count.
+    # The last implementation counted how many keywords matched.
+    # Since this does not seem crucial, reimplementing it - now it counts every math with an artist or title.
+    tracks = map(Track.from_storage_isrc_to_track_data_isrc, Storage.isrc_to_track_data.items())
     while True:
         search_string = input("Search track; or enter 'q' to return to menu: ")
         if search_string == 'q':
             return None
         kws = search_string.split()
-        match_counts = []
-        for isrc in Storage.isrc_to_track_data:
-            data = Storage.isrc_to_track_data[isrc]
-            match_counts.append((isrc, sum(matches(data, kw) for kw in kws)))
-        match_counts = list(sorted(filter(lambda y: y[1] > 0, match_counts), key=lambda y: y[1]))
-        if len(match_counts) > 0:
-            if len(match_counts) > max_results > 0:
-                return match_counts[-max_results:]
-            return match_counts
-        print('No tracks match search.')
+        search = Search()
+        search.search_tracks(tracks, kws)
+        if search.has_results():
+            print('No tracks match search.')
+        return search.get_results(max_results)
 
 
 def store_track_data(track: Track, temp_name_to_isrc):
@@ -168,34 +168,32 @@ def get_new_link(track):
 
 
 def reset_track():
+    # Gives out Track instance with isrc, artists, title and filename, not entire Track set
     tracks = search_track()
-    if tracks is None: return
+    if not tracks: return
 
-    track_count = len(tracks)
-    prompts = [f'{describe_track(isrc)} ({match})' for i, (isrc, match) in enumerate(tracks)] + ['Back']
+    prompts = [f'{track.describe_track()} ({track.match_count})' for track in tracks] + ['Back']
     selected = Menu(prompts).show()
 
-    if selected == track_count: return
-
-    isrc, _ = tracks[selected]
-    confirmed = click.confirm(f'Are you sure to reset {describe_track(isrc)} (Y/n)', default=True)
+    if prompts[selected] == 'Back': return
+    track = tracks[selected]
+    confirmed = click.confirm(f'Are you sure to reset {track.isrc} (Y/n)', default=True)
 
     if not confirmed: return
 
-    if isrc in Storage.isrc_to_track_data:
-        data = Storage.isrc_to_track_data[isrc]
-        newfilename = data['filename']
-        fname_ext = get_filename_ext(newfilename, conf.downloaded_audio_folder)
-        if fname_ext is not None:
-            newpath_ext = os.path.join(conf.downloaded_audio_folder, fname_ext)
-            os.remove(newpath_ext)
+    filename_with_extension = get_filename_ext(track.filename, conf.downloaded_audio_folder)
 
-    Storage.reset_track(isrc, force=True)
+    if filename_with_extension:
+        new_file_path = os.path.join(conf.downloaded_audio_folder, filename_with_extension)
+        os.remove(new_file_path)
+
+    Storage.reset_track(track.isrc, force=True)
+
     url = input("Enter new track url or 'q' to return to menu: ")
+    track.set_download_url(url)
     if url != '' and url != 'q':
-        Storage.add_access_url(isrc, url)
-        Storage.confirm(isrc)
-
+        Storage.add_access_url(track.isrc, track.url)
+        Storage.confirm(track.isrc)
 
 def list_manual():
     print("Manually confirmed tracks:")

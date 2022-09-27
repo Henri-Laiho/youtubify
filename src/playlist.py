@@ -61,7 +61,7 @@ class Playlist:
         self.snapshot_id = playlist_json['snapshot_id']
 
     def set_tracks(self, tracks_json):
-        self.tracks = [Track(x) for x in tracks_json]
+        self.tracks = [Track.from_spotify_json(x) for x in tracks_json]
         self.isrc_map = {x.isrc : x for x in self.tracks if not x.is_local}
 
     def toggle_is_active(self):
