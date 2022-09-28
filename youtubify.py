@@ -7,7 +7,7 @@ from src import conf
 from src.persistance.storage import Storage, SusCode, storage_setup
 from src.playlist import Playlist
 from src.search import Search
-from src.search.Search import isrc_search, get_search_url, get_search_terms
+from src.youtube.search import isrc_search, get_search_url, get_search_terms
 from src.ytdownload import get_filename_ext
 from src.universal_menu import Menu
 from src.track import Track, SusTrack
@@ -39,7 +39,8 @@ def search_track(max_results=100):
     # TODO: think about reimplementing match count.
     # The last implementation counted how many keywords matched.
     # Since this does not seem crucial, reimplementing it - now it counts every math with an artist or title.
-    tracks = map(Track.from_storage_isrc_to_track_data_isrc, Storage.isrc_to_track_data.items())
+
+    tracks = map(lambda x: Track.from_storage_isrc_to_track_data_isrc(*x), Storage.isrc_to_track_data.items())
     while True:
         search_string = input("Search track; or enter 'q' to return to menu: ")
         if search_string == 'q':

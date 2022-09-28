@@ -45,8 +45,7 @@ class SusTrack:
 class Track:
     def __init__(self):
         self.has_all_data = False
-        # TODO: is this name or is this title?
-        self.name = None
+        self.name = None  # same as title
         self.spotify_id = None
         self.download_url = None
         self.artists = None
@@ -105,6 +104,7 @@ class Track:
             track_instance.isrc = track['external_ids']['isrc']
             track_instance.album_total_tracks = album['total_tracks']
         track_instance.has_all_data = True
+        return track_instance
 
     @staticmethod
     def from_storage_isrc_to_track_data_isrc(isrc, track_json):
