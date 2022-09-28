@@ -11,9 +11,11 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import webbrowser
+from copy import copy
 
 from src.spotify.spotify_api import SpotifyAPI
 from src.playlist import Playlist
+from src.track import Track
 from src.user import User
 
 
@@ -28,8 +30,6 @@ def process_tracks(tracks):
     return tracks
 
 
-
-
 # 1 SpotifyApiClient per 1 Spotify user
 class SpotifyApiClient:
     def __init__(self, auth_token=None):
@@ -39,8 +39,30 @@ class SpotifyApiClient:
             self._spotify = SpotifyAPI.authorize(client_id='5c098bcc800e45d49e476265bc9b6934',
                                            scope='playlist-read-private playlist-read-collaborative user-library-read')
 
-    def _populate_tracks(self, playlist_json):
-        playlist_json['tracks'] = process_tracks(self._spotify.list(playlist['tracks']['href'], {'limit': 100}))
+    def _populate_tracks_and_make_playlist(self, playlist_json, url: str, fuzzy_with_playlist: Playlist=None):
+        new_items_idx = 0
+        if fuzzy_with_playlist:
+            def should_continue(tracks_json):
+                slice_start = new_items_idx
+                new_items_idx = len(tracks_json)
+                for new_track_json in tracks_json[slice_start:]:
+                    if 'isrc' not in new_track_json['track']['external_ids'] or new_track_json['track']['external_ids']['isrc'] not in fuzzy_with_playlist.isrc_map:
+                        return True
+                return False
+        else:
+            should_continue = None
+        tracks = process_tracks(self._spotify.list(url, {'limit': 100}, should_continue))
+        if fuzzy_with_playlist:
+            new_tracks = list(map(Track.from_spotify_json, 
+                                  filter(lambda x: 'isrc' not in x['track']['external_ids'] or x['track']['external_ids']['isrc'] not in fuzzy_with_playlist.isrc_map, tracks)))
+            if len(new_tracks) == 0:
+                return None
+            playlist = copy(fuzzy_with_playlist)
+            playlist.tracks = new_tracks + fuzzy_with_playlist.tracks
+            return playlist
+        else:
+            playlist_json['tracks'] = tracks
+            return Playlist.from_json(playlist_json)
 
     def _get_playlists_metadata(self):
         logging.info('Loading playlists...')
@@ -48,20 +70,22 @@ class SpotifyApiClient:
         logging.info(f'Found {len(playlists)} playlists')
         return playlists_json
 
-    def get_changed_playlists(self, user: User):
+    def get_changed_playlists(self, user: User, fuzzy_liked_songs: bool=True, fuzzy_playlists: bool=False, rescan: bool=False):
         playlists = []
         # List liked songs (assume always changed)
         logging.info('Loading liked songs...')
-        liked_tracks = self._spotify.list(f'users/{user.id}/tracks', {'limit': 100})
-        user.add_playlist(Playlist.from_json({'name': 'Liked Songs', 'id': user.id, 'snapshot_id': None, 'tracks': process_isrc(liked_tracks)}))
+        liked_songs = self._populate_tracks_and_make_playlist({'name': 'Liked Songs', 'id': user.id, 'snapshot_id': None}, f'users/{user.id}/tracks', user.get_liked_songs() if fuzzy_liked_songs else None)
+        if liked_songs:
+            playlists.append(liked_songs)
 
         # List all tracks in each playlist
         for playlist_json in self._get_playlists_metadata():
             id = playlist_json['id']
-            if id in user.playlist_id_map and playlist_json['snapshot_id'] != user.playlist_id_map[id].snapshot_id:
+            if rescan or id in user.playlist_id_map and playlist_json['snapshot_id'] != user.playlist_id_map[id].snapshot_id:
                 logging.info('Reloading playlist: {name} ({tracks[total]} songs)'.format(**playlist))
-                self._populate_tracks(playlist_json)
-                playlists.append(Playlist.from_json(playlist_json))
+                playlist = self._populate_tracks_and_make_playlist(playlist_json, playlist_json['tracks']['href'], user.playlist_id_map[id] if fuzzy_playlists else None)
+                if playlist:
+                    playlists.append(playlist)
         return playlists
 
     def get_new_playlists(self, user: User):

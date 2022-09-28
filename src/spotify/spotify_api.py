@@ -50,18 +50,20 @@ class SpotifyAPI:
 
     # The Spotify API breaks long lists into multiple pages. This method automatically
     # fetches all pages and joins them, returning in a single list of objects.
-    def list(self, url, params={}):
+    def list(self, url, params={}, get_should_continue: function=None):
         last_log_time = time.time()
         response = self.get(url, params)
         items = response['items']
 
-        while response['next']:
+        while response['next'] and (get_should_continue is None or get_should_continue(items)):
             if time.time() > last_log_time + 15:
                 last_log_time = time.time()
                 logging.info(f"Loaded {len(items)}/{response['total']} items")
 
             response = self.get(response['next'])
             items += response['items']
+        if response['next']:
+            logging.info(f"Stopping at {len(items)}/{response['total']} items")
         return items
 
     # Pops open a browser window for a user to log in and authorize API access.

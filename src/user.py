@@ -8,6 +8,9 @@ class User:
         self.playlist_id_map = {}
         self.auth_token = auth_token
 
+    def get_liked_songs() -> Playlist:
+        return self.playlist_id_map[self.id] if self.id in self.playlist_id_map else Playlist()
+
     def add_playlist(self, playlist: Playlist):
         if playlist.id in self.playlist_id_map:
             old_playlist = self.playlist_id_map[playlist.id]
