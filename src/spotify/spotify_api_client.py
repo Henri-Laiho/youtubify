@@ -22,11 +22,23 @@ from src.user import User
 logging.basicConfig(level=20, datefmt='%I:%M:%S', format='[%(asctime)s] %(message)s')
 
 
+def has_isrc(track_json):
+    return 'isrc' in track_json['track']['external_ids']
+
+
+def get_isrc(track_json):
+    return track_json['track']['external_ids']['isrc']
+
+
+def set_isrc(track_json, isrc):
+    track_json['track']['external_ids']['isrc'] = isrc
+
+
 def process_tracks(tracks):
     for i in range(len(tracks)):
-        track = tracks[i]['track']
-        if 'isrc' in track['external_ids']:
-            track['external_ids']['isrc'] = track['external_ids']['isrc'].replace('-', '')
+        track = tracks[i]
+        if has_isrc(track):
+            set_isrc(track, get_isrc(track).replace('-', ''))
     return tracks
 
 
@@ -46,7 +58,7 @@ class SpotifyApiClient:
                 slice_start = new_items_idx
                 new_items_idx = len(tracks_json)
                 for new_track_json in tracks_json[slice_start:]:
-                    if 'isrc' not in new_track_json['track']['external_ids'] or new_track_json['track']['external_ids']['isrc'] not in fuzzy_with_playlist.isrc_map:
+                    if not has_isrc(new_track_json) or get_isrc(new_track_json) not in fuzzy_with_playlist.isrc_map:
                         return True
                 return False
         else:
@@ -54,7 +66,7 @@ class SpotifyApiClient:
         tracks = process_tracks(self._spotify.list(url, {'limit': 100}, should_continue))
         if fuzzy_with_playlist:
             new_tracks = list(map(Track.from_spotify_json, 
-                                  filter(lambda x: 'isrc' not in x['track']['external_ids'] or x['track']['external_ids']['isrc'] not in fuzzy_with_playlist.isrc_map, tracks)))
+                                  filter(lambda x: not has_isrc(x) or get_isrc(x) not in fuzzy_with_playlist.isrc_map, tracks)))
             if len(new_tracks) == 0:
                 return None
             playlist = copy(fuzzy_with_playlist)
