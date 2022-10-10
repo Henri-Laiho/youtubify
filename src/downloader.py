@@ -126,7 +126,7 @@ def download_playlist(tracks, num_threads=1, log_handler=None):
             if d['status'] == 'downloading':
                 fname = d['filename'][len(conf.downloaded_audio_folder):]
                 lines.append('%d. %s / %s @ %s, ETA %s %-65s' % (id, d['_percent_str'], d['_total_bytes_str'], d['_speed_str'], d['_eta_str'], fname[:60]))
-        lines.append('Total download speed: %.2fKiB/s\r' % (sum([thread_statuses[x+1]['speed'] for x in range(num_threads) if 'speed' in thread_statuses[x+1]])/1024))
+        lines.append('Total download speed: %.2fKiB/s   \r' % (sum([thread_statuses[x+1]['speed'] for x in range(num_threads) if 'speed' in thread_statuses[x+1]])/1024))
         if log_handler: log_handler.acquire()
         print('\n'.join(lines))
         print('\r', end='')
