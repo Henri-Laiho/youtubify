@@ -3,6 +3,7 @@ import os
 from src.persistance.track_data import Storage
 from src.track import Track
 from src.playlist_format import PlaylistFormat
+from src.playlist_export_device import PlaylistExportDevice
 from src.file_index import FileIndex
 from src.conf import spotify_unsupported_preview_suffix
 
@@ -13,10 +14,9 @@ class Playlist:
         self.id = None
         self.name = None
         self.is_active = False
-        isrc_map = {}
+        self.isrc_map = {}
         
-        
-    def to_format(self, format: PlaylistFormat, playlist_type, local_files_index : FileIndex, skip_local_files: bool):
+    def to_format(self, format: PlaylistFormat, playlist_type: PlaylistExportDevice, local_files_index: FileIndex, skip_local_files: bool):
         lines = []
         
         if format.header is not None:
@@ -31,14 +31,14 @@ class Playlist:
                 if fname.endswith(spotify_unsupported_preview_suffix):
                     filename = fname[:-len(spotify_unsupported_preview_suffix)]
                     filename_no_suffix = filename[:filename.rindex('.')]
-                    idx = local_files_index.which_folder(filename_no_suffix)
+                    index = local_files_index.which_folder(filename_no_suffix)
                 elif fname in local_files_index.file_map:
                     filename = local_files_index.file_map[fname]
-                    idx = local_files_index.which_folder(fname)
+                    index = local_files_index.which_folder(fname)
                 else:
                     print('ERROR:', fname, 'not found in local files')
                     continue
-                path = os.path.join(playlist_type.spotify_missing_paths[idx], filename)
+                path = playlist_type.os_path.join(playlist_type.spotify_missing_paths[index], filename)
                 entry = format.formatter(filename, j, path)
             else:
                 entry = track._get_playlist_entry_string(j, format.formatter, playlist_type)

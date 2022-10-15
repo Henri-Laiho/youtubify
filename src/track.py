@@ -114,6 +114,6 @@ class Track:
         filename_with_extension = get_filename_ext(filename, download_folder)
         if not filename_with_extension:
             return None
-        fullpath = os.path.join(playlist_type.downloaded_path, filename_with_extension)
+        fullpath = playlist_type.get_dl_full_path(filename_with_extension)
         return formatter(filename_with_extension, number, fullpath)
 
