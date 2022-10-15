@@ -59,7 +59,8 @@ class Playlist:
     def set_metadata(self, playlist_json):
         self.id = playlist_json['id']
         self.name = playlist_json['name']
-        self.snapshot_id = playlist_json['snapshot_id']
+        if 'snapshot_id' in playlist_json:
+            self.snapshot_id = playlist_json['snapshot_id']
 
     def set_tracks(self, tracks_json):
         self.tracks = [Track.from_spotify_json(x) for x in tracks_json]
