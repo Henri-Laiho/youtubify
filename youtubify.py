@@ -393,6 +393,8 @@ def reset():
 @click.option("--browser", default=True, help="Review links in browser")
 def review_cli(browser=False):
     review(browser)
+    Storage.save()
+    print('Data saved.')
 
 
 if __name__ == '__main__':
