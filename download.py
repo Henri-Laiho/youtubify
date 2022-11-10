@@ -43,3 +43,4 @@ if __name__ == '__main__':
     download_playlist(tracks, num_threads=16, log_handler=console)
 
     Storage.save()
+    print('Data saved.')
