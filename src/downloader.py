@@ -5,6 +5,7 @@ from queue import Queue
 import threading
 import time
 import colorama
+import copy
 
 import youtube_dl
 
@@ -122,10 +123,10 @@ def download_playlist(tracks, num_threads=1, log_handler=None):
         queueLock.acquire()
         lines = ['Downloading: (+%d more in queue)' % workQueue.qsize()]
         queueLock.release()
-        for id, d in thread_statuses.items():
+        for thread_id, d in thread_statuses.items():
             if d['status'] == 'downloading':
                 fname = d['filename'][len(conf.downloaded_audio_folder):]
-                lines.append('%d. %s / %s @ %s, ETA %s %-65s' % (id, d['_percent_str'], d['_total_bytes_str'], d['_speed_str'], d['_eta_str'], fname[:60]))
+                lines.append('%d. %s / %s @ %s, ETA %s %-65s' % (thread_id, d['_percent_str'], d['_total_bytes_str'], d['_speed_str'], d['_eta_str'], fname[:60]))
         lines.append('Total download speed: %.2fKiB/s   \r' % (sum([thread_statuses[x+1]['speed'] for x in range(num_threads) if 'speed' in thread_statuses[x+1]])/1024))
         if log_handler: log_handler.acquire()
         print('\n'.join(lines))
@@ -134,9 +135,11 @@ def download_playlist(tracks, num_threads=1, log_handler=None):
         last_status['lines'] = len(lines)
         if log_handler: log_handler.release()
 
-    def update_status(id, data):
+    def update_status(thread_id, data):
         thread_status_lock.acquire()
-        thread_statuses[id] = data
+        for key in thread_statuses[thread_id]:
+            if key in data:
+                thread_statuses[thread_id][key] = data[key]
         t = time.time_ns()
         if t-last_status['print_time'] > 10e8:
             last_status['print_time'] = t
@@ -147,7 +150,7 @@ def download_playlist(tracks, num_threads=1, log_handler=None):
     for threadID, tName in enumerate(threadList):
         thread = DlThread(threadID+1, tName, workQueue, queueLock, checkExit, update_status, log_handler)
         threads.append(thread)
-        thread_statuses[threadID+1] = thread_statuses[-1]
+        thread_statuses[threadID+1] = copy.copy(thread_statuses[-1])
         thread.start()
     del thread_statuses[-1]
 
