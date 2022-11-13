@@ -29,15 +29,16 @@ class Playlist:
                     continue
 
                 fname = track.filename
+                filename_no_extension = fname
                 if fname.endswith(spotify_unsupported_preview_suffix):
-                    filename = fname[:-len(spotify_unsupported_preview_suffix)]
-                    filename_no_suffix = filename[:filename.rindex('.')]
-                    index = local_files_index.which_folder(filename_no_suffix)
-                elif fname in local_files_index.file_map:
-                    filename = local_files_index.file_map[fname]
-                    index = local_files_index.which_folder(fname)
+                    filename_no_suffix = fname[:-len(spotify_unsupported_preview_suffix)]
+                    filename_no_extension = filename_no_suffix[:filename_no_suffix.rindex('.')]
+
+                if filename_no_extension in local_files_index.file_map:
+                    filename = local_files_index.file_map[filename_no_extension]
+                    index = local_files_index.which_folder(filename_no_extension)
                 else:
-                    print('ERROR:', fname, 'not found in local files')
+                    print('ERROR:', filename_no_extension, 'not found in local files')
                     continue
                 path = playlist_type.os_path.join(playlist_type.spotify_missing_paths[index], filename)
                 entry = format.formatter(filename, j, path)
