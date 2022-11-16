@@ -27,7 +27,7 @@ class SpotifyAPI:
         self._auth = auth
 
     # Gets a resource from the Spotify API and returns the object.
-    def get(self, url, params={}, tries=3, on_error='exit'):
+    def get(self, url, params={}, tries=25, on_error='exit'):
         # Construct the correct URL.
         if not url.startswith('https://api.spotify.com/v1/'):
             url = 'https://api.spotify.com/v1/' + url
@@ -35,7 +35,7 @@ class SpotifyAPI:
             url += ('&' if '?' in url else '?') + urllib.parse.urlencode(params)
 
         # Try the sending off the request a specified number of times before giving up.
-        for _ in range(tries):
+        for tri in range(tries):
             try:
                 req = urllib.request.Request(url)
                 req.add_header('Authorization', 'Bearer ' + self._auth)
@@ -44,9 +44,10 @@ class SpotifyAPI:
                 return json.load(reader(res))
             except Exception as err:
                 logging.info('Couldn\'t load URL: {} ({})'.format(url, err))
-                time.sleep(2)
-                logging.info('Trying again...')
+                time.sleep(2 + 0.35*tri)
+                logging.info('Trying again... (%d/%d)' % (tri+1, tries))
         if on_error == 'exit':
+            logging.critical('Failed after %d tries. Aborting spotify import!' % (tries))
             sys.exit(1)
         return None
 
