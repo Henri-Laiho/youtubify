@@ -160,7 +160,7 @@ def ignore_sus_track(track):
 
 def get_new_link(track):
     new_link = click.prompt("Enter new link")
-    confirmation = click.confirm(f"New link set as {new_link}")
+    confirmation = click.confirm(f"New link set as {new_link}", default=True)
     if confirmation:
         isrc = track.isrc
         Storage.reset_track(isrc, force=True)
@@ -178,7 +178,7 @@ def reset_track():
 
     if prompts[selected] == 'Back': return
     track = tracks[selected]
-    confirmed = click.confirm(f'Are you sure to reset {track.isrc} (Y/n)', default=True)
+    confirmed = click.confirm(f'Are you sure to reset {track.isrc}', default=True)
 
     if not confirmed: return
 

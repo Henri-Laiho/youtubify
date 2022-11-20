@@ -45,7 +45,8 @@ class SpotifyAPI:
             except Exception as err:
                 logging.info('Couldn\'t load URL: {} ({})'.format(url, err))
                 time.sleep(2 + 0.35*tri)
-                logging.info('Trying again... (%d/%d)' % (tri+1, tries))
+                if tri+1 < tries:
+                    logging.info('Trying again... (%d/%d)' % (tri+1, tries))
         if on_error == 'exit':
             logging.critical('Failed after %d tries. Aborting spotify import!' % (tries))
             sys.exit(1)

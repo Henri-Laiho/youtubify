@@ -11,9 +11,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     storage_setup()
 
-    config = Bunch(token=Storage.spotify_token, dump='liked,playlists', format='json', file=conf.playlists_file, liked_fuzzy=args.liked_fuzzy or 1)
-
     for _ in range(3):
+        config = Bunch(token=Storage.spotify_token, dump='liked,playlists', format='json', file=conf.playlists_file, liked_fuzzy=args.liked_fuzzy or 1)
         Storage.spotify_token = spotify_backup.main(config)
         if Storage.spotify_token is not None:
             break
