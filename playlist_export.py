@@ -9,10 +9,10 @@ from src.composition import Composition
 from src.playlist_format import PlaylistFormat
 
 try:
-    from conf_playlist_export import playlist_types
+    from conf.conf_playlist_export import playlist_types
 except ImportError:
     playlist_types = None
-    print('Copy conf_playlist_export.py.example to conf_playlist_export.py and modify if needed.')
+    print('Copy ./conf/conf_playlist_export.py.example to ./conf/conf_playlist_export.py and modify if needed.')
     exit(-1)
 from src import conf, downloader
 from src.persistance.storage import Storage
