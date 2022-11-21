@@ -150,15 +150,15 @@ class Storage:
     def sync_shared_data():
         Storage.__new_key_monitor = set()
         for folder in conf.data_export_folders:
-            contexts = list(filter(lambda it: os.path.isfile(it), (os.path.join(folder, x, Storage._datafile + '_shared.json') for x in os.listdir(folder))))
-            Storage.import_shared_contexts(contexts)
+            files = list(filter(lambda it: os.path.isfile(it), (os.path.join(folder, x, Storage._datafile + '_shared.json') for x in os.listdir(folder))))
+            Storage.import_shared_files(files)
         print('Sync complete - imported data on %d tracks.' % len(Storage.__new_key_monitor))
         Storage.__new_key_monitor = None
 
     @staticmethod
-    def import_shared_contexts(contexts: list):
-        for context in contexts:
-            with open(filename, 'r') as f:
+    def import_shared_files(files: list):
+        for file in files:
+            with open(file, 'r') as f:
                 data = json.loads(f.read())
             Storage.import_shared_data([data])
 
