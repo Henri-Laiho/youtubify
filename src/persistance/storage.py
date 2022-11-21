@@ -29,7 +29,21 @@ def shorten(text: str, a=3):
     return text if len(text) < a else text[::len(text) // a]
 
 
+def is_newer(local_item: tuple, incoming_item: tuple) -> bool:
+    return local_item[0] < incoming_item[0]
+
+
+def import_table(local_table: dict, incoming_table: dict, new_key_monitor: set = None):
+    for item_key in incoming_table:
+        if item_key not in local_table or is_newer(local_table[item_key], incoming_table[item_key]):
+            local_table[item_key] = incoming_table[item_key]
+            if new_key_monitor:
+                new_key_monitor.add(item_key)
+
+
 class Storage:
+    __new_key_monitor = None
+
     _instance_id = None
     _datafile = None
 
@@ -78,42 +92,6 @@ class Storage:
         Storage.metadata_version = OldStorage.metadata_version
 
     @staticmethod
-    def load_private_dict(data):
-        if '_instance_id' in data:
-            Storage._instance_id = data['_instance_id']
-        else:
-            id = str(uuid.uuid4())
-            print('Initializing new instance with id', id)
-            Storage._instance_id = id
-
-        if 'active_playlist_ids' in data:
-            Storage.active_playlist_ids = data['active_playlist_ids']
-        if 'playlist_compositions' in data:
-            Storage.playlist_compositions = data['playlist_compositions']
-
-    @staticmethod
-    def load_shared_dict(data):
-        if 'isrc_to_access_url' in data:
-            Storage.isrc_to_access_url = data['isrc_to_access_url']
-        if 'is_autogen' in data:
-            Storage.is_autogen = data['is_autogen']
-        if 'sus_tracks' in data:
-            Storage.sus_tracks = data['sus_tracks']
-        if 'manual_confirm' in data:
-            Storage.manual_confirm = data['manual_confirm']
-        if 'ignored_tracks' in data:
-            Storage.ignored_tracks = data['ignored_tracks']
-        if 'isrc_to_track_data' in data:
-            Storage.isrc_to_track_data = data['isrc_to_track_data']
-
-    @staticmethod
-    def load_lib_state_dict(data):
-        if 'metadata_version' in data:
-            Storage.metadata_version = data['metadata_version']
-        if 'isrc_local_downloaded_status' in data:
-            Storage.isrc_local_downloaded_status = data['isrc_local_downloaded_status']
-
-    @staticmethod
     def get_private_save_dict():
         return {
             '_instance_id': Storage._instance_id,
@@ -139,6 +117,57 @@ class Storage:
             'metadata_version': Storage.metadata_version,
             'isrc_local_downloaded_status': Storage.isrc_local_downloaded_status,
         }
+
+    @staticmethod
+    def load_private_dict(data):
+        if '_instance_id' in data:
+            Storage._instance_id = data['_instance_id']
+        else:
+            id = str(uuid.uuid4())
+            print('Initializing new instance with id', id)
+            Storage._instance_id = id
+
+        if 'active_playlist_ids' in data:
+            Storage.active_playlist_ids = data['active_playlist_ids']
+        if 'playlist_compositions' in data:
+            Storage.playlist_compositions = data['playlist_compositions']
+
+    @staticmethod
+    def load_shared_dict(data):
+        local_db = Storage.get_shared_save_dict
+        for key in local_db:
+            if key in data:
+                local_db[key] = data[key]
+
+    @staticmethod
+    def load_lib_state_dict(data):
+        local_db = Storage.get_lib_state_save_dict()
+        for key in local_db:
+            if key in data:
+                local_db[key] = data[key]
+
+    @staticmethod
+    def sync_shared_data():
+        Storage.__new_key_monitor = set()
+        for folder in conf.data_export_folders:
+            contexts = list(filter(lambda it: os.path.isfile(it), (os.path.join(folder, x, Storage._datafile + '_shared.json') for x in os.listdir(folder))))
+            Storage.import_shared_contexts(contexts)
+        print('Sync complete - imported data on %d tracks.' % len(Storage.__new_key_monitor))
+        Storage.__new_key_monitor = None
+
+    @staticmethod
+    def import_shared_contexts(contexts: list[str]):
+        for context in contexts:
+            with open(filename, 'r') as f:
+                data = json.loads(f.read())
+            Storage.import_shared_data([data])
+
+    @staticmethod
+    def import_shared_data(shared_dicts: list[dict]):
+        local_db = Storage.get_shared_save_dict()
+        for table_key in local_db:
+            for shared_db in shared_dicts:
+                import_table(local_db[table_key], shared_db[table_key], Storage.__new_key_monitor)
 
     @staticmethod
     def set_track_data(isrc: str, artists: list, title: str, filename: str):
@@ -225,7 +254,7 @@ class Storage:
         if os.path.isfile(filename):
             with open(filename, 'r') as f:
                 data = json.loads(f.read())
-            Storage.load_private_dict(data=data)
+            Storage.load_private_dict(data)
         else:
             print('Private data file not found; starting with empty database.')
 
@@ -234,7 +263,7 @@ class Storage:
         if os.path.isfile(filename):
             with open(filename, 'r') as f:
                 data = json.loads(f.read())
-            Storage.load_shared_dict(data=data)
+            Storage.load_shared_dict(data)
         else:
             print('Shared data file not found; starting with empty database.')
 
@@ -243,7 +272,7 @@ class Storage:
         if os.path.isfile(filename):
             with open(filename, 'r') as f:
                 data = json.loads(f.read())
-            Storage.load_lib_state_dict(data=data)
+            Storage.load_lib_state_dict(data)
         else:
             print('Library state data file not found; starting with empty database.')
 
@@ -268,9 +297,8 @@ class Storage:
             file = Storage._datafile
 
         private_path = os.path.join(conf.data_folder, file)
-        sync_folder = os.path.join(conf.data_folder, 'sync', Storage._instance_id)
-        ensure_dir(sync_folder)
-        sync_path = os.path.join(sync_folder, file)
+        sync_folders = [os.path.join(x, Storage._instance_id) for x in conf.data_export_folders]
+        for x in sync_folders: ensure_dir(x)
 
         data_private = Storage.get_private_save_dict()
         with open(private_path + '_private.json', 'w') as f:
@@ -279,8 +307,11 @@ class Storage:
         data_shared = Storage.get_shared_save_dict()
         with open(private_path + '_shared.json', 'w') as f:
             json.dump(data_shared, f)
-        with open(sync_path +'_shared.json', 'w') as f:
-            json.dump(data_shared, f)
+        
+        for sync_folder in sync_folders:
+            sync_path = os.path.join(sync_folder, file)
+            with open(sync_path + '_shared.json', 'w') as f:
+                json.dump(data_shared, f)
 
         data_lib_state = Storage.get_lib_state_save_dict()
         with open(private_path + '_lib_state.json', 'w') as f:

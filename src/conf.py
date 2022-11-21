@@ -12,6 +12,10 @@ try:
 except ImportError:
     data_folder = 'data'
 try:
+    from conf.conf_private import data_export_folders
+except ImportError:
+    data_export_folders = [os.path.join(data_folder, 'sync')]
+try:
     from conf.conf_private import spotify_local_files_folders
 except ImportError:
     spotify_local_files_folders = None
