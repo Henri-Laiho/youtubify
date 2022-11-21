@@ -5,10 +5,12 @@ from time import time
 
 from src import conf
 from src.persistance.old_storage import OldStorage
+from src.persistance.cli_storage import CliStorage
 from src.utils.fs_utils import ensure_dir
 
 private_id_prefix = 'HLY'
 autogen_detector_version = 1
+library_id_file = '.id'
 
 
 def timems():
@@ -37,7 +39,7 @@ def import_table(local_table: dict, incoming_table: dict, new_key_monitor: set =
     for item_key in incoming_table:
         if item_key not in local_table or is_newer(local_table[item_key], incoming_table[item_key]):
             local_table[item_key] = incoming_table[item_key]
-            if new_key_monitor:
+            if new_key_monitor is not None:
                 new_key_monitor.add(item_key)
 
 
@@ -46,6 +48,7 @@ class Storage:
 
     _instance_id = None
     _datafile = None
+    _spotify_user_service = None
 
     isrc_to_access_url = {}
     sus_tracks = {}
@@ -57,6 +60,8 @@ class Storage:
     active_playlist_ids = {}
     isrc_local_downloaded_status = {}
     playlist_compositions = {}
+    download_library_id = None
+    private_data_update_time = 0
 
     @staticmethod
     def reset():
@@ -70,6 +75,8 @@ class Storage:
         Storage.active_playlist_ids = {}
         Storage.isrc_local_downloaded_status = {}
         Storage.playlist_compositions = {}
+        Storage.download_library_id = None
+        Storage.private_data_update_time = 0
 
     @staticmethod
     def load_from_old_storage():
@@ -86,16 +93,17 @@ class Storage:
         Storage.manual_confirm = {isrc: (now, OldStorage.manual_confirm[isrc]) for isrc in OldStorage.manual_confirm}
         Storage.isrc_to_track_data = {isrc: (now, OldStorage.isrc_to_track_data[isrc]) for isrc in OldStorage.isrc_to_track_data}
         Storage.ignored_tracks = {isrc: (now, OldStorage.ignored_tracks[isrc]) for isrc in OldStorage.ignored_tracks}
+        Storage.isrc_local_downloaded_status = {isrc: (now, OldStorage.isrc_local_downloaded_status[isrc]) for isrc in OldStorage.isrc_local_downloaded_status}
+        Storage.metadata_version = {isrc: (now, OldStorage.metadata_version[isrc]) for isrc in OldStorage.metadata_version}
         Storage.active_playlist_ids = OldStorage.active_playlist_ids
-        Storage.isrc_local_downloaded_status = OldStorage.isrc_local_downloaded_status
         Storage.playlist_compositions = OldStorage.playlist_compositions
-        Storage.metadata_version = OldStorage.metadata_version
+        Storage.private_data_update_time = now
 
     @staticmethod
     def get_private_save_dict():
         return {
+            'private_data_update_time' : Storage.private_data_update_time,
             '_instance_id': Storage._instance_id,
-
             'active_playlist_ids': Storage.active_playlist_ids,
             'playlist_compositions': Storage.playlist_compositions,
         }
@@ -120,6 +128,8 @@ class Storage:
 
     @staticmethod
     def load_private_dict(data):
+        if 'private_data_update_time' in data:
+            Storage.private_data_update_time = data['private_data_update_time']
         if '_instance_id' in data:
             Storage._instance_id = data['_instance_id']
         else:
@@ -147,27 +157,40 @@ class Storage:
                 local_db[key].update(data[key])
 
     @staticmethod
-    def sync_shared_data():
+    def sync_data():
         Storage.__new_key_monitor = set()
-        for folder in conf.data_export_folders:
-            files = list(filter(lambda it: os.path.isfile(it), (os.path.join(folder, x, Storage._datafile + '_shared.json') for x in os.listdir(folder))))
-            Storage.import_shared_files(files)
+        for file, local_db, import_method in [
+            (Storage._get_shared_filename(), Storage.get_shared_save_dict(), Storage.import_data), 
+            (Storage._get_private_filename(), Storage.get_private_save_dict(), Storage.import_private_data), 
+            (Storage._get_lib_state_filename(), Storage.get_lib_state_save_dict(), Storage.import_data)]:
+            for folder in conf.data_export_folders:
+                files = list(filter(lambda it: os.path.isfile(it), (os.path.join(folder, x, file) for x in os.listdir(folder) if x != Storage._instance_id)))
+                Storage.import_files(files, local_db, import_method)
         print('Sync complete - imported data on %d tracks.' % len(Storage.__new_key_monitor))
         Storage.__new_key_monitor = None
 
     @staticmethod
-    def import_shared_files(files: list):
+    def import_files(files: list, local_db: dict, import_method):
         for file in files:
             with open(file, 'r') as f:
                 data = json.loads(f.read())
-            Storage.import_shared_data([data])
+            import_method([data], local_db)
 
     @staticmethod
-    def import_shared_data(shared_dicts: list):
-        local_db = Storage.get_shared_save_dict()
+    def import_data(dicts: list, local_db: dict):
         for table_key in local_db:
-            for shared_db in shared_dicts:
-                import_table(local_db[table_key], shared_db[table_key], Storage.__new_key_monitor)
+            for db in dicts:
+                import_table(local_db[table_key], db[table_key], Storage.__new_key_monitor)
+
+    @staticmethod
+    def import_private_data(private_dicts: list, local_db: dict):
+        for db in private_dicts:
+            if Storage.private_data_update_time < db['private_data_update_time']:
+                Storage.private_data_update_time = db['private_data_update_time']
+                if 'active_playlist_ids' in data:
+                    Storage.active_playlist_ids = data['active_playlist_ids']
+                if 'playlist_compositions' in data:
+                    Storage.playlist_compositions = data['playlist_compositions']
 
     @staticmethod
     def set_track_data(isrc: str, artists: list, title: str, filename: str):
@@ -237,6 +260,15 @@ class Storage:
         return Storage.isrc_to_track_data[isrc][1] if isrc in Storage.isrc_to_track_data else None
 
     @staticmethod
+    def get_download_version(isrc: str):
+        return Storage.isrc_local_downloaded_status[isrc][1] if isrc in Storage.isrc_local_downloaded_status else -1
+
+    @staticmethod
+    def set_download_version(isrc: str, version: int):
+        Storage.isrc_local_downloaded_status[isrc] = (timems(), version)
+
+
+    @staticmethod
     def set_autogen_track(isrc: str):
         Storage.is_autogen[isrc] = (timems(), autogen_detector_version)
 
@@ -248,6 +280,19 @@ class Storage:
             return private_id_prefix + shorten(title) + shorten(artists) + str(duration_floor_s)
         else:
             raise RuntimeError('artists must be string or list')
+
+    @staticmethod
+    def _get_shared_filename():
+        return Storage._datafile + '_shared.json'
+
+    @staticmethod
+    def _get_private_filename():
+        uid = Storage._spotify_user_service.get_spotify_user_id()
+        return Storage._datafile + '_' + (uid if uid is not None else 'anonymous') + '_private.json'
+
+    @staticmethod
+    def _get_lib_state_filename():
+        return Storage._datafile + '_' + Storage.download_library_id + '_lib_state.json'
 
     @staticmethod
     def load_private(filename):
@@ -283,11 +328,22 @@ class Storage:
         else:
             Storage._datafile = filename
 
-        private_path = os.path.join(conf.data_folder, filename)
-        if os.path.isfile(private_path + '_private.json'):
-            Storage.load_private(private_path + '_private.json')
-            Storage.load_shared(private_path + '_shared.json')
-            Storage.load_lib_state(private_path + '_lib_state.json')
+        lib_id_path = os.path.join(conf.downloaded_audio_folder, library_id_file)
+        if os.path.isfile(lib_id_path):
+            with open(lib_id_path, 'r') as f:
+                Storage.download_library_id = f.read()
+        else:
+            id = str(uuid.uuid4())
+            print('Initializing audio library with id', id)
+            Storage.download_library_id = id
+            ensure_dir(conf.downloaded_audio_folder)
+            with open(lib_id_path, 'w') as f:
+                f.write(id)
+
+        if os.path.isfile(os.path.join(conf.data_folder, Storage._get_private_filename())):
+            Storage.load_private(os.path.join(conf.data_folder, Storage._get_private_filename()))
+            Storage.load_shared(os.path.join(conf.data_folder, Storage._get_shared_filename()))
+            Storage.load_lib_state(os.path.join(conf.data_folder, Storage._get_lib_state_filename()))
         else:
             Storage.load_from_old_storage()
 
@@ -296,28 +352,30 @@ class Storage:
         if file is None:
             file = Storage._datafile
 
-        private_path = os.path.join(conf.data_folder, file)
         sync_folders = [os.path.join(x, Storage._instance_id) for x in conf.data_export_folders]
         for x in sync_folders: ensure_dir(x)
 
         data_private = Storage.get_private_save_dict()
-        with open(private_path + '_private.json', 'w') as f:
-            json.dump(data_private, f)
-
         data_shared = Storage.get_shared_save_dict()
-        with open(private_path + '_shared.json', 'w') as f:
-            json.dump(data_shared, f)
-        
-        for sync_folder in sync_folders:
-            sync_path = os.path.join(sync_folder, file)
-            with open(sync_path + '_shared.json', 'w') as f:
-                json.dump(data_shared, f)
-
         data_lib_state = Storage.get_lib_state_save_dict()
-        with open(private_path + '_lib_state.json', 'w') as f:
+
+        with open(os.path.join(conf.data_folder, Storage._get_private_filename()), 'w') as f:
+            json.dump(data_private, f)
+        with open(os.path.join(conf.data_folder, Storage._get_shared_filename()), 'w') as f:
+            json.dump(data_shared, f)
+        with open(os.path.join(conf.data_folder, Storage._get_lib_state_filename()), 'w') as f:
             json.dump(data_lib_state, f)
 
+        for sync_folder in sync_folders:
+            with open(os.path.join(sync_folder, Storage._get_private_filename()), 'w') as f:
+                json.dump(data_private, f)
+            with open(os.path.join(sync_folder, Storage._get_shared_filename()), 'w') as f:
+                json.dump(data_shared, f)
+            with open(os.path.join(sync_folder, Storage._get_lib_state_filename()), 'w') as f:
+                json.dump(data_lib_state, f)
+
     @staticmethod
-    def storage_setup():
+    def storage_setup(spotify_user_service = CliStorage):
         datafile = 'ytfy_data'
+        Storage._spotify_user_service = spotify_user_service
         Storage.load(datafile)

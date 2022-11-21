@@ -10,7 +10,7 @@ from youtubify import is_track_acceptable
 
 def is_file_not_downloaded(track_dict):
     isrc = track_dict[ISRC]
-    return isrc not in Storage.isrc_local_downloaded_status or Storage.isrc_local_downloaded_status[isrc] < download_version
+    return Storage.get_download_version(isrc) < download_version
 
 
 if __name__ == '__main__':

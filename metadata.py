@@ -81,8 +81,8 @@ def download_arts(urls, track_file):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     args = parser.parse_args()
-    Storage.storage_setup()
     CliStorage.storage_setup()
+    Storage.storage_setup()
 
     playlists = load_spotify_playlists(conf.playlists_file)
 

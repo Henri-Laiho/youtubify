@@ -56,7 +56,7 @@ class DlThread(threading.Thread):
                     logging.info("%s processing %s (%s)" % (self.name, filename, yt))
                     try:
                         self.downloader.download(yt, filename=filename)
-                        Storage.isrc_local_downloaded_status[isrc] = download_version
+                        Storage.set_download_version(isrc, download_version)
                     except youtube_dl.utils.DownloadError as err:
                         logging.error("%s Download Error, resetting track %s - %s:" % (self.name, filename, yt) + str(err))
                         Storage.reset_track(track[ISRC], force=True)

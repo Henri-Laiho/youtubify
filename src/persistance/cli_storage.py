@@ -65,3 +65,9 @@ class CliStorage:
     def storage_setup():
         datafile = os.path.join(conf.data_folder, 'cli_data.json')
         CliStorage.load(datafile)
+
+    @staticmethod
+    def get_spotify_user_id():
+        if CliStorage._datafile is None:
+            CliStorage.storage_setup()
+        return CliStorage.user_id
