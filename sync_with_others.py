@@ -9,6 +9,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     args = parser.parse_args()
     Storage.storage_setup()
-    Storage.sync_shared_data()
+    Storage.sync_data()
     print('Data saved.')
     Storage.save()
