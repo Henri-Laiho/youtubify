@@ -100,7 +100,6 @@ class Storage:
             'playlist_compositions': Storage.playlist_compositions,
         }
         
-
     @staticmethod
     def get_shared_save_dict():
         return {
@@ -284,8 +283,8 @@ class Storage:
         else:
             Storage._datafile = filename
 
-        if os.path.isdir(conf.data_folder):
-            private_path = os.path.join(conf.data_folder, filename)
+        private_path = os.path.join(conf.data_folder, filename)
+        if os.path.isfile(private_path + '_private.json'):
             Storage.load_private(private_path + '_private.json')
             Storage.load_shared(private_path + '_shared.json')
             Storage.load_lib_state(private_path + '_lib_state.json')
