@@ -89,7 +89,7 @@ def init_yt_isrc_tracks(tracks, playlists : list):
     for track in tracks:
         isrc = track[ISRC]
         if isrc in Storage.isrc_to_track_data:
-            track[FILENAME] = Storage.isrc_to_track_data[isrc]['filename']
+            track[FILENAME] = Storage.get_track_data(isrc)['filename']
         else:
             # TODO: following logic needs to be redesigned for multi-user-system
             strack = None

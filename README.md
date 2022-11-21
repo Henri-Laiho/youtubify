@@ -18,8 +18,8 @@ To run this bundle of scripts you need to:
 3. ensure you have [ffmpeg](https://ffmpeg.org/download.html) installed and in use (on linux debian with `sudo apt install ffmpeg`)
 4. ensure you have installed every python package in `requirements.txt` with `pip3 install -r requirements.txt` command in the repository root directory.
 5. have enough disk space for the songs to be downloaded
-6. (optional) to save music in a different directory or if you have spotify local files in your playlists: copy/rename `./src/conf_private.py.example` to `./src/conf_private.py` and edit it to specify folders for music files & generated playlist files
-7. (optional) to get playlist files copy/rename `conf_playlist_export.py.example` to `conf_playlist_export.py`; to get playlist files that work on another device, edit this file and specify the music file directories on the other device.
+6. (optional) to save music in a different directory or if you have spotify local files in your playlists: copy/rename `./conf/conf_private.py.example` to `./conf/conf_private.py` and edit it to specify folders for music files & generated playlist files
+7. (optional) to get playlist files copy/rename `./conf/conf_playlist_export.py.example` to `./conf/conf_playlist_export.py`; to get playlist files that work on another device, edit this file and specify the music file directories on the other device.
 
 ## First time usage
 

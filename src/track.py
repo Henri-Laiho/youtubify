@@ -1,9 +1,8 @@
 import os
 
 from src.conf import downloaded_audio_folder as download_folder
-from src.ytdownload import get_file_extension_if_exists
 from src.persistance.storage import Storage
-from src.ytdownload import get_filename_ext
+from src.utils.fs_utils import get_filename_ext, get_file_extension_if_exists
 
 
 nice_path_encoding = {
@@ -29,11 +28,11 @@ def path_encode(path, encoding=nice_path_encoding):
 class SusTrack:
     def __init__(self, isrc):
         self.isrc = isrc
-        self.track = Storage.sus_tracks[self.isrc]
+        self.track = Storage.get_sus_track(self.isrc)
         self.sus_code = self.track['code']
         self.title = self.track['title']
         self.artists = self.track['artists']
-        self.url = Storage.isrc_to_access_url[self.isrc]
+        self.url = Storage.get_access_url(self.isrc)
 
     def __str__(self):
         artists_str = ', '.join(self.artists)
@@ -161,7 +160,7 @@ class Track:
 
     def get_persisted_filename(self):
         # TODO: remove when track objects are created from storage
-        return Storage.isrc_to_track_data[self.isrc]['filename'] if self.isrc in Storage.isrc_to_track_data else None
+        return Storage.get_track_data(self.isrc)['filename'] if self.isrc in Storage.isrc_to_track_data else None
 
     def __eq__(self, other):
         return isinstance(other, Track) and self.spotify_id == other.spotify_id

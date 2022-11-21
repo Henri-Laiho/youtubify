@@ -8,7 +8,9 @@ downloaded/
 testdata/
 __pycache__/
 playlists/
+conf/*.py
 dist/
+data/
 build/
 ffmpeg.exe
 *.spec

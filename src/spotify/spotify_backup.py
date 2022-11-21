@@ -238,4 +238,4 @@ def main(args):
         if args.format == 'json':
             json.dump(playlists, f)
     logging.info('Wrote file: ' + args.file)
-    return spotify._auth
+    return spotify._auth, me['id'], me['display_name']

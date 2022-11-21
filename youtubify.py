@@ -4,7 +4,7 @@ import os
 import webbrowser
 
 from src import conf
-from src.persistance.storage import Storage, SusCode, storage_setup
+from src.persistance.storage import Storage, SusCode
 from src.playlist import Playlist
 from src.search import Search
 from src.youtube.search import isrc_search, get_search_url, get_search_terms
@@ -18,10 +18,10 @@ singleton_spotify_playlists = []
 def is_track_acceptable(isrc):
     if isrc not in Storage.isrc_to_access_url:
         return False
-    if isrc in Storage.manual_confirm and Storage.manual_confirm[isrc]:
+    if Storage.is_manual_confirm(isrc):
         return True
     if isrc in Storage.sus_tracks:
-        code = Storage.sus_tracks[isrc]['code']
+        code = Storage.get_sus_track(isrc)['code']
         if code in [SusCode.isrc_no_artist_match, SusCode.isrc_low_lev]:
             return True
         return False
@@ -77,9 +77,7 @@ def is_filename_not_unique(track, temp_name_to_isrc):
 
 
 def needs_converting(isrc):
-    # TODO: convert ignored_tracks to a set so that we can omit
-    # "Storage.ignored_tracks[isrc]"
-    return not is_track_acceptable(isrc) and not (isrc in Storage.ignored_tracks and Storage.ignored_tracks[isrc])
+    return not is_track_acceptable(isrc) and not Storage.is_track_ignored(isrc)
 
 
 def convert_track_to_youtube_link(track: Track):
@@ -200,8 +198,8 @@ def list_manual():
     print("Manually confirmed tracks:")
     i = 0
     for isrc in Storage.manual_confirm:
-        if Storage.manual_confirm[isrc]:
-            print("%s; %s; %s" % (isrc, Storage.isrc_to_access_url[isrc], Storage.isrc_to_track_data[isrc]))
+        if Storage.is_manual_confirm(isrc):
+            print("%s; %s; %s" % (isrc, Storage.get_access_url(isrc), Storage.get_track_data(isrc)))
             i += 1
     print("Total %d manually confirmed tracks" % i)
 
@@ -302,7 +300,6 @@ def interactive():
 @click.group(invoke_without_command=True)
 @click.pass_context
 def cli(ctx):
-    storage_setup()
     if ctx.invoked_subcommand is None:
         interactive()
 
@@ -342,7 +339,6 @@ def lsman():
 
 @cli.command
 def convert():
-    storage_setup()
     convert_active_playlists_to_youtube_links()
     Storage.save()
     print('Data saved.')
@@ -364,5 +360,5 @@ def review_cli(browser=False):
 
 
 if __name__ == '__main__':
-    storage_setup()
+    Storage.storage_setup()
     cli()
