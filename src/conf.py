@@ -13,6 +13,10 @@ except ImportError:
     data_folder = 'data'
 try:
     from conf.conf_private import data_export_folders
+    if isinstance(data_export_folders, str):
+        data_export_folders = [data_export_folders]
+    if not isinstance(data_export_folders, list):
+        raise RuntimeError('invalid data_export_folders configuration in ./conf/conf_private.py')
 except ImportError:
     data_export_folders = [os.path.join(data_folder, 'sync')]
 try:

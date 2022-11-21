@@ -99,6 +99,7 @@ class Storage:
             'active_playlist_ids': Storage.active_playlist_ids,
             'playlist_compositions': Storage.playlist_compositions,
         }
+        
 
     @staticmethod
     def get_shared_save_dict():
@@ -134,17 +135,17 @@ class Storage:
 
     @staticmethod
     def load_shared_dict(data):
-        local_db = Storage.get_shared_save_dict
+        local_db = Storage.get_shared_save_dict()
         for key in local_db:
             if key in data:
-                local_db[key] = data[key]
+                local_db[key].update(data[key])
 
     @staticmethod
     def load_lib_state_dict(data):
         local_db = Storage.get_lib_state_save_dict()
         for key in local_db:
             if key in data:
-                local_db[key] = data[key]
+                local_db[key].update(data[key])
 
     @staticmethod
     def sync_shared_data():
@@ -156,14 +157,14 @@ class Storage:
         Storage.__new_key_monitor = None
 
     @staticmethod
-    def import_shared_contexts(contexts: list[str]):
+    def import_shared_contexts(contexts: list):
         for context in contexts:
             with open(filename, 'r') as f:
                 data = json.loads(f.read())
             Storage.import_shared_data([data])
 
     @staticmethod
-    def import_shared_data(shared_dicts: list[dict]):
+    def import_shared_data(shared_dicts: list):
         local_db = Storage.get_shared_save_dict()
         for table_key in local_db:
             for shared_db in shared_dicts:
