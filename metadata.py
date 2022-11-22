@@ -104,7 +104,7 @@ if __name__ == '__main__':
                 print('\nWARNING: track "%s" missing' % newfilename)
                 continue
 
-            if isrc in Storage.metadata_version and Storage.metadata_version[isrc] >= metadata_version:
+            if Storage.get_metadata_version(isrc) >= metadata_version:
                 continue
 
             track = None
@@ -131,6 +131,6 @@ if __name__ == '__main__':
             for x, _, _ in art_files:
                 os.remove(x)
 
-            Storage.metadata_version[isrc] = metadata_version
+            Storage.set_metadata_version(isrc, metadata_version)
     print('\nDone')
     Storage.save()

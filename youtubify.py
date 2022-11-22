@@ -237,7 +237,7 @@ def edit_composition(name, comp):
         if selected_prompt == 'Back':
             return
         if selected_prompt == 'Delete composition':
-            del Storage.playlist_compositions[name]
+            Storage.remove_composition(name)
             return
 
         selected_playlist = playlists[selected_prompt_index]

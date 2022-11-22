@@ -233,6 +233,7 @@ class Storage:
 
     @staticmethod
     def set_active_playlist(playlist_id: str, active: bool):
+        Storage.private_data_update_time = timems()
         Storage.active_playlist_ids[playlist_id] = active
 
     @staticmethod
@@ -264,9 +265,16 @@ class Storage:
         return Storage.isrc_local_downloaded_status[isrc][1] if isrc in Storage.isrc_local_downloaded_status else -1
 
     @staticmethod
+    def get_metadata_version(isrc: str):
+        return Storage.metadata_version[isrc][1] if isrc in Storage.metadata_version else -1
+
+    @staticmethod
+    def set_metadata_version(isrc: str, version: int):
+        Storage.metadata_version[isrc] = (timems(), version)
+
+    @staticmethod
     def set_download_version(isrc: str, version: int):
         Storage.isrc_local_downloaded_status[isrc] = (timems(), version)
-
 
     @staticmethod
     def set_autogen_track(isrc: str):
@@ -280,6 +288,16 @@ class Storage:
             return private_id_prefix + shorten(title) + shorten(artists) + str(duration_floor_s)
         else:
             raise RuntimeError('artists must be string or list')
+
+    @staticmethod
+    def set_composition(key, comp):
+        Storage.private_data_update_time = timems()
+        Storage.playlist_compositions[key] = comp
+
+    @staticmethod
+    def remove_composition(key):
+        Storage.private_data_update_time = timems()
+        del Storage.playlist_compositions[key]
 
     @staticmethod
     def _get_shared_filename():
