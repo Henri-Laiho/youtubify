@@ -114,7 +114,7 @@ def download_playlist(tracks, num_threads=1, log_handler=None):
     threads = []
     thread_status_lock = threading.Lock()
     last_status = {'print_time' : 0, 'lines' : 0}
-    thread_statuses = {-1 : {'_eta_str': '0s', '_percent_str': '  0.0%', '_speed_str': '  0B/s', '_total_bytes_str': '0B', 'filename': '', 'status': ''}}
+    thread_statuses = {-1 : {'_eta_str': '0s', '_percent_str': '  0.0%', '_speed_str': '  0B/s', '_total_bytes_str': '0B', 'filename': '', 'status': '', 'speed': 0}}
     
     def checkExit():
         return exitFlag

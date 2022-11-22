@@ -122,22 +122,20 @@ def review_with_browser():
 
 
 def review(browser=False):
-    tracks = Storage.sus_tracks.copy()
+    tracks = list(filter(lambda isrc: needs_converting(isrc), Storage.sus_tracks.copy()))
     track_count = len(tracks)
     for i, isrc in enumerate(tracks):
-        if not needs_converting(isrc):
-            continue
         sus_track = SusTrack(isrc)
-        print(f'{i}/{track_count} {sus_track}')
+        print(f'{i+1}/{track_count} {sus_track}')
 
         if browser:
-            if not sus_track.url:
+            if sus_track.url:
                 webbrowser.open(sus_track.url)
             webbrowser.open(get_search_url(get_search_terms(sus_track.artists, sus_track.title)))
 
         while True:
             prompt_commands = {'Enter new link': get_new_link,
-                               'Confirm old link': lambda x: 1,
+                               'Confirm old link': confirm_old_link,
                                'Skip': lambda x: 1,
                                'Ignore': ignore_sus_track,
                                'Back to main menu': lambda x: 1}
@@ -154,6 +152,13 @@ def review(browser=False):
 
 def ignore_sus_track(track):
     Storage.ignore_track(track.isrc)
+
+
+def confirm_old_link(track):
+    if track.url:  
+        Storage.reset_track(track.isrc, force=True)
+        Storage.add_access_url(track.isrc, track.url)
+        Storage.confirm(track.isrc)
 
 
 def get_new_link(track):
