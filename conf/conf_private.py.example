@@ -1,0 +1,5 @@
+spotify_local_files_folders = [r'C:\Users\<user>\Music']
+downloaded_audio_folder = r'C:\where\to\download\youtubified\music\files'
+playlists_export_folder = 'playlists'
+data_folder = 'data'
+data_export_folders = 'data/sync'

@@ -4,20 +4,20 @@ import colorama
 
 from src import conf
 from src.downloader import load_spotify_playlists, init_yt_isrc_tracks, download_playlist, YT, ISRC, download_version
-from src.persistance.storage import Storage, storage_setup
+from src.persistance.storage import Storage
 from youtubify import is_track_acceptable
 
 
 def is_file_not_downloaded(track_dict):
     isrc = track_dict[ISRC]
-    return isrc not in Storage.isrc_local_downloaded_status or Storage.isrc_local_downloaded_status[isrc] < download_version
+    return Storage.get_download_version(isrc) < download_version
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', '--verify', action='store_true', help='Verify all files exist', default=False)
     args = parser.parse_args()
-    storage_setup()
+    Storage.storage_setup()
 
     colorama.init()
 
@@ -31,7 +31,7 @@ if __name__ == '__main__':
     tracks = []
     for isrc in Storage.isrc_to_access_url:
         if is_track_acceptable(isrc):
-            tracks.append({YT: Storage.isrc_to_access_url[isrc], ISRC: isrc})
+            tracks.append({YT: Storage.get_access_url(isrc), ISRC: isrc})
 
     playlists = load_spotify_playlists(conf.playlists_file)
 

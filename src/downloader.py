@@ -56,13 +56,13 @@ class DlThread(threading.Thread):
                     logging.info("%s processing %s (%s)" % (self.name, filename, yt))
                     try:
                         self.downloader.download(yt, filename=filename)
-                        Storage.isrc_local_downloaded_status[isrc] = download_version
+                        Storage.set_download_version(isrc, download_version)
                     except youtube_dl.utils.DownloadError as err:
                         logging.error("%s Download Error, resetting track %s - %s:" % (self.name, filename, yt) + str(err))
                         Storage.reset_track(track[ISRC], force=True)
                         self.errors += 1
                         if self.errors > conf.Flags.max_download_errors:
-                            logging.critical("Maximum number if errors reached, %s exiting" % self.name)
+                            logging.critical("Maximum number of errors reached, %s exiting" % self.name)
                             break
 
             else:
@@ -89,7 +89,7 @@ def init_yt_isrc_tracks(tracks, playlists : list):
     for track in tracks:
         isrc = track[ISRC]
         if isrc in Storage.isrc_to_track_data:
-            track[FILENAME] = Storage.isrc_to_track_data[isrc]['filename']
+            track[FILENAME] = Storage.get_track_data(isrc)['filename']
         else:
             # TODO: following logic needs to be redesigned for multi-user-system
             strack = None

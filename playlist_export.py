@@ -9,19 +9,14 @@ from src.composition import Composition
 from src.playlist_format import PlaylistFormat
 
 try:
-    from conf_playlist_export import playlist_types
+    from conf.conf_playlist_export import playlist_types
 except ImportError:
     playlist_types = None
-    print('Copy conf_playlist_export.py.example to conf_playlist_export.py and modify if needed.')
+    print('Copy ./conf/conf_playlist_export.py.example to ./conf/conf_playlist_export.py and modify if needed.')
     exit(-1)
 from src import conf, downloader
-from src.persistance.storage import storage_setup, Storage
+from src.persistance.storage import Storage
 from src.ytdownload import ensure_dir, get_filename_ext
-
-try:
-    from src.conf_private import spotify_local_files_folders
-except ImportError:
-    spotify_local_files_folders = None
 
 # TODO: implement UI for mode choice
 mode = 'm3u8'
@@ -68,10 +63,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--no_local', action='store_true', help='don\'t include local files', default=False)
     args = parser.parse_args()
-    storage_setup()
+    Storage.storage_setup()
     no_local = args.no_local
 
-    local_file_index = FileIndex(spotify_local_files_folders)
+    local_file_index = FileIndex(conf.spotify_local_files_folders)
 
     ensure_dir(conf.playlists_export_folder)
 

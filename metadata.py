@@ -8,21 +8,22 @@ from music_tag import Artwork, MetadataItem
 from src import conf
 from src.track import Track
 from src.downloader import load_spotify_playlists, ISRC_MAP
-from src.persistance.storage import Storage, storage_setup
+from src.persistance.storage import Storage
+from src.persistance.cli_storage import CliStorage
 from src.spotify.spotify_backup import SpotifyAPI
-from src.ytdownload import ensure_dir, get_filename_ext
+from src.utils.fs_utils import ensure_dir, get_filename_ext
 from youtubify import is_track_acceptable
 
 metadata_version = 5
 
 
 def fetch_genre_data(spotify_urls):
-    if Storage.spotify_token:
-        spotify = SpotifyAPI(Storage.spotify_token)
+    if CliStorage.spotify_token:
+        spotify = SpotifyAPI(CliStorage.spotify_token)
     else:
         spotify = SpotifyAPI.authorize(client_id='5c098bcc800e45d49e476265bc9b6934',
                                        scope='playlist-read-private playlist-read-collaborative user-library-read')
-        Storage.spotify_token = spotify._auth
+        CliStorage.spotify_token = spotify._auth
     for x in spotify_urls:
         spotify.get('tracks/%s' % x)
     # not supported by api
@@ -80,7 +81,8 @@ def download_arts(urls, track_file):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     args = parser.parse_args()
-    storage_setup()
+    CliStorage.storage_setup()
+    Storage.storage_setup()
 
     playlists = load_spotify_playlists(conf.playlists_file)
 
@@ -89,7 +91,7 @@ if __name__ == '__main__':
         i += 1
         print('\rAdding Metadata: %d/%d' % (i, len(Storage.isrc_to_track_data)), end='')
         if is_track_acceptable(isrc):
-            track_data = Storage.isrc_to_track_data[isrc]
+            track_data = Storage.get_track_data(isrc)
             newfilename = track_data['filename']
             fnext = get_filename_ext(newfilename, conf.downloaded_audio_folder)
             newpath_ext = None
