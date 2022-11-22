@@ -81,7 +81,7 @@ class Storage:
     @staticmethod
     def load_from_old_storage():
         OldStorage.storage_setup()
-        now = timems()
+        now = 0
         
         id = str(uuid.uuid4())
         print('Initializing new instance with id', id)
@@ -183,14 +183,14 @@ class Storage:
                 import_table(local_db[table_key], db[table_key], Storage.__new_key_monitor)
 
     @staticmethod
-    def import_private_data(private_dicts: list, local_db: dict):
+    def import_private_data(private_dicts: list, _):
         for db in private_dicts:
             if Storage.private_data_update_time < db['private_data_update_time']:
                 Storage.private_data_update_time = db['private_data_update_time']
-                if 'active_playlist_ids' in data:
-                    Storage.active_playlist_ids = data['active_playlist_ids']
-                if 'playlist_compositions' in data:
-                    Storage.playlist_compositions = data['playlist_compositions']
+                if 'active_playlist_ids' in db:
+                    Storage.active_playlist_ids = db['active_playlist_ids']
+                if 'playlist_compositions' in db:
+                    Storage.playlist_compositions = db['playlist_compositions']
 
     @staticmethod
     def set_track_data(isrc: str, artists: list, title: str, filename: str):
