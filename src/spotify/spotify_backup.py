@@ -39,7 +39,7 @@ class SpotifyAPI:
             try:
                 req = urllib.request.Request(url)
                 req.add_header('Authorization', 'Bearer ' + self._auth)
-                res = urllib.request.urlopen(req)
+                res = urllib.request.urlopen(req, timeout=15)
                 reader = codecs.getreader('utf-8')
                 return json.load(reader(res))
             except Exception as err:
@@ -163,7 +163,7 @@ def main(args):
     logging.info('Loading user info...')
     me = spotify.get('me', tries=1, on_error='return')
     if me is None:
-        return None
+        return None, None, None
     logging.info('Logged in as {display_name} ({id})'.format(**me))
 
     old_playlists = None
