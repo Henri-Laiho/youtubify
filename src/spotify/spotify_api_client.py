@@ -76,10 +76,10 @@ class SpotifyApiClient:
             playlist_json['tracks'] = tracks
             return Playlist.from_json(playlist_json)
 
-    def _get_playlists_metadata(self):
+    def _get_playlists_metadata(self, user: User):
         logging.info('Loading playlists...')
         playlists_json = self._spotify.list(f'users/{user.id}/playlists', {'limit': 50})
-        logging.info(f'Found {len(playlists)} playlists')
+        logging.info(f'Found {len(playlists_json)} playlists')
         return playlists_json
 
     def get_changed_playlists(self, user: User, fuzzy_liked_songs: bool=True, fuzzy_playlists: bool=False, rescan: bool=False):
@@ -91,10 +91,10 @@ class SpotifyApiClient:
             playlists.append(liked_songs)
 
         # List all tracks in each playlist
-        for playlist_json in self._get_playlists_metadata():
+        for playlist_json in self._get_playlists_metadata(user):
             id = playlist_json['id']
             if rescan or id in user.playlist_id_map and playlist_json['snapshot_id'] != user.playlist_id_map[id].snapshot_id:
-                logging.info('Reloading playlist: {name} ({tracks[total]} songs)'.format(**playlist))
+                logging.info('Reloading playlist: {name} ({tracks[total]} songs)'.format(**playlist_json))
                 playlist = self._populate_tracks_and_make_playlist(playlist_json, playlist_json['tracks']['href'], user.playlist_id_map[id] if fuzzy_playlists else None)
                 if playlist:
                     playlists.append(playlist)

@@ -59,6 +59,7 @@ class Storage:
     ignored_tracks = {}
     active_playlist_ids = {}
     isrc_local_downloaded_status = {}
+    url_download_errors = {}
     playlist_compositions = {}
     download_library_id = None
     private_data_update_time = 0
@@ -74,6 +75,7 @@ class Storage:
         Storage.ignored_tracks = {}
         Storage.active_playlist_ids = {}
         Storage.isrc_local_downloaded_status = {}
+        Storage.url_download_errors = {}
         Storage.playlist_compositions = {}
         Storage.download_library_id = None
         Storage.private_data_update_time = 0
@@ -117,6 +119,7 @@ class Storage:
             'manual_confirm': Storage.manual_confirm,
             'ignored_tracks': Storage.ignored_tracks,
             'isrc_to_track_data': Storage.isrc_to_track_data,
+            'url_download_errors': Storage.url_download_errors,
         }
 
     @staticmethod
@@ -224,12 +227,34 @@ class Storage:
     @staticmethod
     def confirm(isrc: str):
         Storage.manual_confirm[isrc] = (timems(), True)
+        Storage.reset_download_errors(isrc, Storage.get_access_url(isrc))
+
 
     @staticmethod
     def add_access_url(isrc: str, url: str):
         Storage.isrc_to_access_url[isrc] = (timems(), url)
         if isrc in Storage.isrc_local_downloaded_status:
             del Storage.isrc_local_downloaded_status[isrc]
+
+    @staticmethod
+    def add_download_error(isrc: str, url: str):
+        if isrc not in Storage.url_download_errors:
+            Storage.url_download_errors[isrc] = (timems(), {})
+        if url not in Storage.url_download_errors[isrc][1]:
+            Storage.url_download_errors[isrc][1][url] = 0
+        Storage.url_download_errors[isrc][1][url] += 1
+
+    @staticmethod
+    def get_download_errors(isrc: str, url: str):
+        if isrc in Storage.url_download_errors and url in Storage.url_download_errors[isrc][1]:
+            return Storage.url_download_errors[isrc][1][url]
+        return 0
+
+    @staticmethod
+    def reset_download_errors(isrc: str, url: str):
+        if isrc in Storage.url_download_errors and url in Storage.url_download_errors[isrc][1]:
+            del Storage.url_download_errors[isrc][1][url]
+            Storage.url_download_errors[isrc][0] = timems()
 
     @staticmethod
     def set_active_playlist(playlist_id: str, active: bool):

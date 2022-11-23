@@ -15,8 +15,6 @@ build/
 ffmpeg.exe
 *.spec
 Run.lnk
-src/conf_private.py
 *.ipynb
-/conf_playlist_export.py
 /*.log
 cut_files.*

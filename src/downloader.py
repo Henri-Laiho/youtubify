@@ -45,7 +45,6 @@ class DlThread(threading.Thread):
             self.queueLock.acquire()
             if not self.queue.empty():
                 track = self.queue.get()
-                size = self.queue.qsize()
                 self.queueLock.release()
                 if FILENAME not in track or YT not in track:
                     logging.warning("%s, track missing: %s" % (self.name, track[ISRC]))
@@ -58,12 +57,10 @@ class DlThread(threading.Thread):
                         self.downloader.download(yt, filename=filename)
                         Storage.set_download_version(isrc, download_version)
                     except youtube_dl.utils.DownloadError as err:
-                        logging.error("%s Download Error, resetting track %s - %s:" % (self.name, filename, yt) + str(err))
-                        Storage.reset_track(track[ISRC], force=True)
-                        self.errors += 1
-                        if self.errors > conf.Flags.max_download_errors:
-                            logging.critical("Maximum number of errors reached, %s exiting" % self.name)
-                            break
+                        Storage.add_download_error(isrc, yt)
+                        if Storage.get_download_errors(isrc, yt) > conf.Flags.max_download_errors:
+                            logging.error("%s Too many download errors, resetting track %s - %s:" % (self.name, filename, yt) + str(err))
+                            Storage.reset_track(track[ISRC], force=True)
 
             else:
                 self.queueLock.release()
@@ -82,7 +79,7 @@ def pick_spotify_playlist(playlists: list, idx=None) -> Playlist:
         for i, playlist in enumerate(playlists):
             print(i, playlist.name)
     else:
-        return data[idx]
+        return playlists[idx]
 
 
 def init_yt_isrc_tracks(tracks, playlists : list):
@@ -100,11 +97,12 @@ def init_yt_isrc_tracks(tracks, playlists : list):
             if strack is None:
                 continue
             track[FILENAME] = strack.filename
-            print('Warning: using old filename: %s; Make sure you run "youtubify.py -c" before "download.py"' % strack.filename)
+            print('Warning: using old filename: %s; Make sure you run "youtubify.py convert" before "download.py"' % strack.filename)
 
 
 cursor_up = lambda lines: '\x1b[{0}A'.format(lines)
 cursor_down = lambda lines: '\x1b[{0}B'.format(lines)
+
 
 def download_playlist(tracks, num_threads=1, log_handler=None):
     exitFlag = 0
@@ -127,7 +125,10 @@ def download_playlist(tracks, num_threads=1, log_handler=None):
             if d['status'] == 'downloading':
                 fname = d['filename'][len(conf.downloaded_audio_folder):]
                 lines.append('%d. %s / %s @ %s, ETA %s %-65s' % (thread_id, d['_percent_str'], d['_total_bytes_str'], d['_speed_str'], d['_eta_str'], fname[:60]))
-        lines.append('Total download speed: %.2fKiB/s   \r' % (sum([thread_statuses[x+1]['speed'] for x in range(num_threads) if 'speed' in thread_statuses[x+1]])/1024))
+        lines.append(
+            'Total download speed: %.2fKiB/s   \r' %
+            (sum([thread_statuses[x+1]['speed'] for x in range(num_threads) if 'speed' in thread_statuses[x+1] and thread_statuses[x+1]['speed']])/1024)
+        )
         if log_handler: log_handler.acquire()
         print('\n'.join(lines))
         print('\r', end='')
