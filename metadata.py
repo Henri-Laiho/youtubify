@@ -40,6 +40,17 @@ def set_metadata_field(metadata, field, data):
         metadata[field] = data
 
 
+def get_metadata_field(file, field):
+    return music_tag.load_file(file)[field]
+
+
+def is_comment_field_good(file):
+    comment = get_metadata_field(file, 'comment')
+    if isinstance(comment, str):
+        return 'Added' in comment and 'isrc=' in comment
+    return False
+
+
 def set_metadata(file, title, album, albumartists, artists, track_number, total_tracks, disc_number, comments,
                  art_files, year):
     f = music_tag.load_file(file)
@@ -80,6 +91,7 @@ def download_arts(urls, track_file):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--check_comment', action='store_true', help='Check comment field to estimate if metadata is present', default=False)
     args = parser.parse_args()
     CliStorage.storage_setup()
     Storage.storage_setup()
@@ -104,6 +116,9 @@ if __name__ == '__main__':
                 print('\nWARNING: track "%s" missing' % newfilename)
                 continue
 
+            if args.check_comment:
+                if not is_comment_field_good(newpath_ext):
+                    Storage.set_metadata_version(isrc, -1)
             if Storage.get_metadata_version(isrc) >= metadata_version:
                 continue
 
