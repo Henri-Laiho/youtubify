@@ -46,8 +46,8 @@ def get_metadata_field(file, field):
 
 def is_comment_field_good(file):
     comment = get_metadata_field(file, 'comment')
-    if isinstance(comment, str):
-        return 'Added' in comment and 'isrc=' in comment
+    if isinstance(comment.val, str):
+        return 'Added' in comment.val and 'isrc=' in comment.val
     return False
 
 
