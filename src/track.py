@@ -5,6 +5,19 @@ from src.persistance.storage import Storage
 from src.utils.fs_utils import get_filename_ext, get_file_extension_if_exists
 
 
+fullwidth_path_encoding = {
+    '\\': '＼',
+    '/': '／',
+    ':': '：',
+    '*': '＊',
+    '?': '？',
+    '"': '＂',
+    '<': '＜',
+    '>': '＞',
+    '|': '｜',
+    '%': '％',
+}
+
 nice_path_encoding = {
     '\\': '',
     '/': '',
@@ -17,6 +30,7 @@ nice_path_encoding = {
     '|': '',
     '%': '',
 }
+
 
 
 def path_encode(path, encoding=nice_path_encoding):
@@ -152,8 +166,13 @@ class Track:
         old_path = os.path.join(download_folder, old_filename + self.extension)
         new_path = os.path.join(download_folder, self.filename + self.extension)
 
-        print('Names changed: renaming file "%s" to "%s"' % (old_filename, self.filename))
-        os.rename(old_path, new_path)
+        if os.path.isfile(old_path):
+            print('Names changed: renaming file "%s" to "%s"' % (old_filename, self.filename))
+            if os.path.isfile(new_path):
+                print('New file already exists, deleting old file "%s"' % (old_filename))
+                os.remove(old_path)
+            else:
+                os.rename(old_path, new_path)
 
     def set_download_url(self, url):
         self.download_url = url

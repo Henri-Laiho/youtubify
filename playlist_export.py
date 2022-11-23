@@ -2,6 +2,8 @@ import argparse
 import json
 import os
 
+from src.track import fullwidth_path_encoding
+from src.track import path_encode
 from src.track import Track
 from src.playlist import Playlist
 from src.file_index import FileIndex
@@ -89,7 +91,7 @@ if __name__ == '__main__':
             lines = playlist.to_format(playlist_format, playlist_type, local_file_index, no_local)
 
             with open(
-                os.path.join(directory, playlist_type.playlist_file_prefix + '_' + list_name + extension),
+                os.path.join(directory, playlist_type.playlist_file_prefix + '_' + path_encode(list_name, fullwidth_path_encoding) + extension),
                 mode='w+',
                 encoding='utf8') as f:
                 for line in lines:
