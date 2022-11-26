@@ -53,15 +53,21 @@ class DlThread(threading.Thread):
                     isrc = track[ISRC]
                     filename = track[FILENAME]
                     logging.info("%s processing %s (%s)" % (self.name, filename, yt))
-                    try:
-                        self.downloader.download(yt, filename=filename)
-                        Storage.set_download_version(isrc, download_version)
-                    except youtube_dl.utils.DownloadError as err:
-                        Storage.add_download_error(isrc, yt)
-                        if Storage.get_download_errors(isrc, yt) > conf.Flags.max_download_errors:
-                            logging.error("%s Too many download errors, resetting track %s - %s:" % (self.name, filename, yt) + str(err))
-                            Storage.reset_track(track[ISRC], force=True)
-
+                    tries = 5
+                    for i in range(tries):
+                        try:
+                            self.downloader.download(yt, filename=filename)
+                            Storage.set_download_version(isrc, download_version)
+                            break
+                        except youtube_dl.utils.DownloadError as err:
+                            logging.warning("%s %s (%s) download error:" % (self.name, filename, yt) + str(err))
+                            Storage.add_download_error(isrc, yt)
+                            if Storage.get_download_errors(isrc, yt) > conf.Flags.max_download_errors:
+                                logging.critical("%s Too many download errors, resetting track %s - %s:" % (self.name, filename, yt) + str(err))
+                                Storage.reset_track(track[ISRC], force=True)
+                                break
+                            if i == tries-1:
+                                logging.error("%s Getting download errors, skipping track %s - %s:" % (self.name, filename, yt) + str(err))
             else:
                 self.queueLock.release()
             time.sleep(0.01)

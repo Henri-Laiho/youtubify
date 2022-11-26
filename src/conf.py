@@ -32,4 +32,4 @@ downloaded_artwork_folder = os.path.join(downloaded_audio_folder, 'art')
 
 
 class Flags:
-    max_download_errors = 10
+    max_download_errors = 12
