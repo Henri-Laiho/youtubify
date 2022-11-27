@@ -11,8 +11,16 @@ from src.youtube.search import isrc_search, get_search_url, get_search_terms
 from src.ytdownload import get_filename_ext
 from src.universal_menu import Menu
 from src.track import Track, SusTrack
+from src.local_files import LocalFileManager
 
 singleton_spotify_playlists = []
+singleton_local_file_manager = []
+
+
+def get_local_file_manager() -> LocalFileManager:
+    if len(singleton_local_file_manager) == 0:
+        singleton_local_file_manager.append(LocalFileManager())
+    return singleton_local_file_manager[0]
 
 
 def is_track_acceptable(isrc):
@@ -232,7 +240,8 @@ def get_playlist_comp_names():
 
 
 def edit_composition(name, comp):
-    playlists = get_playlists()
+    filemgr = get_local_file_manager()
+    playlists = get_playlists() + filemgr.get_meta_playlists()
 
     while True:
         prompts = [p.get_menu_string_with_composition_status(comp) for p in playlists] + ['Delete composition', 'Back']

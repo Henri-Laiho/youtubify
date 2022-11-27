@@ -1,4 +1,6 @@
 ﻿import os
+from src import conf
+
 
 class FileIndex:
 
@@ -9,6 +11,8 @@ class FileIndex:
         if folders:
             for folder in folders:
                 for i in os.listdir(folder):
+                    if not conf.is_audio_file(i):
+                        continue
                     key = i[:i.rindex('.')]
                     if key in self.file_map:
                         print('WARNING: track', key, 'has multiple instances in spotify local files')

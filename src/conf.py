@@ -30,6 +30,9 @@ except ImportError:
 downloaded_artwork_folder = os.path.join(downloaded_audio_folder, 'art')
 
 
+def is_audio_file(filename):
+    return not filename.startswith('.')
+
 
 class Flags:
     max_download_errors = 12

@@ -78,13 +78,13 @@ class Playlist:
         return self.id in composition
 
     def get_menu_string_with_active_state(self):
-        return f"{'+' if self.is_active else ' '} {self.name}"
+        return f"{'+' if self.is_active else ' '} {self.name if self.name else self.id}"
 
     # TODO: use composition class instead of dict
     def get_menu_string_with_composition_status(self, composition: dict):
-        return f"{'+' if self.is_in_composition(composition) else ' '} {self.name}"
+        return f"{'+' if self.is_in_composition(composition) else ' '} {self.name if self.name else self.id}"
 
     def __str__(self):
-        return self.name
+        return self.name if self.name else self.id
     
     

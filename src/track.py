@@ -200,3 +200,9 @@ class Track:
 
     def describe_track(self):
         return f"{', '.join(self.artists)} - {self.name}"
+
+
+class LocalTrack:
+    def __init__(self, filename_with_extension):
+        self.filename = filename_with_extension[:filename_with_extension.rindex('.')]
+        self.is_local = True

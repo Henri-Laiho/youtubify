@@ -10,7 +10,7 @@ from src.utils.fs_utils import ensure_dir
 
 private_id_prefix = 'HLY'
 autogen_detector_version = 1
-library_id_file = '.id'
+folder_id_file = '.id'
 
 
 def timems():
@@ -41,6 +41,28 @@ def import_table(local_table: dict, incoming_table: dict, new_key_monitor: set =
             local_table[item_key] = incoming_table[item_key]
             if new_key_monitor is not None:
                 new_key_monitor.add(item_key)
+
+
+def get_folder_id(folder, message='Initializing new folder with id %s', current_id=None):
+    id_path = os.path.join(folder, folder_id_file)
+    if os.path.isfile(id_path):
+        with open(id_path, 'r') as f:
+            return f.read()
+    else:
+        id = str(uuid.uuid4()) if current_id is None else current_id
+        print(message % id + ' (current)' if id == current_id else '')
+        ensure_dir(folder)
+        with open(id_path, 'w') as f:
+            f.write(id)
+        return id
+
+
+def get_folder_data(folder, data_key):
+    path = os.path.join(folder, '.' + data_key)
+    if os.path.isfile(path):
+        with open(path, 'r') as f:
+            return f.read()
+    return None
 
 
 class Storage:
@@ -105,7 +127,6 @@ class Storage:
     def get_private_save_dict():
         return {
             'private_data_update_time' : Storage.private_data_update_time,
-            '_instance_id': Storage._instance_id,
             'active_playlist_ids': Storage.active_playlist_ids,
             'playlist_compositions': Storage.playlist_compositions,
         }
@@ -133,12 +154,8 @@ class Storage:
     def load_private_dict(data):
         if 'private_data_update_time' in data:
             Storage.private_data_update_time = data['private_data_update_time']
-        if '_instance_id' in data:
+        if '_instance_id' in data:  # TODO: remove when no instances with this version
             Storage._instance_id = data['_instance_id']
-        else:
-            id = str(uuid.uuid4())
-            print('Initializing new instance with id', id)
-            Storage._instance_id = id
 
         if 'active_playlist_ids' in data:
             Storage.active_playlist_ids = data['active_playlist_ids']
@@ -371,22 +388,13 @@ class Storage:
         else:
             Storage._datafile = filename
 
-        lib_id_path = os.path.join(conf.downloaded_audio_folder, library_id_file)
-        if os.path.isfile(lib_id_path):
-            with open(lib_id_path, 'r') as f:
-                Storage.download_library_id = f.read()
-        else:
-            id = str(uuid.uuid4())
-            print('Initializing audio library with id', id)
-            Storage.download_library_id = id
-            ensure_dir(conf.downloaded_audio_folder)
-            with open(lib_id_path, 'w') as f:
-                f.write(id)
+        Storage.download_library_id = get_folder_id(conf.downloaded_audio_folder, 'Initializing audio library with id %s')
 
         if os.path.isfile(os.path.join(conf.data_folder, Storage._get_private_filename())):
             Storage.load_private(os.path.join(conf.data_folder, Storage._get_private_filename()))
             Storage.load_shared(os.path.join(conf.data_folder, Storage._get_shared_filename()))
             Storage.load_lib_state(os.path.join(conf.data_folder, Storage._get_lib_state_filename()))
+            Storage._instance_id = get_folder_id(conf.data_folder, 'Initializing new instance with id %s', Storage._instance_id)
         else:
             Storage.load_from_old_storage()
 

@@ -7,6 +7,7 @@ from src.track import path_encode
 from src.track import Track
 from src.playlist import Playlist
 from src.file_index import FileIndex
+from src.local_files import LocalFileManager
 from src.composition import Composition
 from src.playlist_format import PlaylistFormat
 
@@ -47,8 +48,10 @@ playlist_format = PlaylistFormat('m3u8', "#EXTM3U", format_m3u8, '.m3u8')
 
 
 def add_compositions(playlists_json):
+    filemgr = LocalFileManager()
+
     # TODO: parse playlists_json to Playlist objects in another function
-    playlists = [Playlist.from_json(x) for x in playlists_json]
+    playlists = [Playlist.from_json(x) for x in playlists_json] + filemgr.get_playlists()
     id_to_plist = {x.id : x for x in playlists}
 
     for composition_name, playlist_ids in Storage.playlist_compositions.items():
@@ -79,9 +82,8 @@ if __name__ == '__main__':
 
     playlists = add_compositions(playlists_json)
 
-
     for i, playlist in enumerate(playlists):
-        list_name = playlist.name
+        list_name = playlist.name if playlist.name else playlist.id
         print(i, list_name)
 
         for playlist_type in playlist_types:
@@ -91,9 +93,8 @@ if __name__ == '__main__':
             lines = playlist.to_format(playlist_format, playlist_type, local_file_index, no_local)
 
             with open(
-                os.path.join(directory, playlist_type.playlist_file_prefix + '_' + path_encode(list_name, fullwidth_path_encoding) + extension),
+                os.path.join(directory, path_encode(list_name, fullwidth_path_encoding) + extension),
                 mode='w+',
                 encoding='utf8') as f:
                 for line in lines:
                     f.write(line + '\n')
-
