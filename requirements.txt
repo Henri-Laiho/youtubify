@@ -7,5 +7,5 @@ levenshtein
 music-tag
 click
 colorama
-simple_term_menu
+simple-term-menu
 console-menu

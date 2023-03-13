@@ -1,8 +1,8 @@
-python -m pip install --upgrade -r requirements.txt
-python spotify_import.py --liked_fuzzy
-python sync_with_others.py
-python youtubify.py convert
-python youtubify.py review
-python download.py
-python metadata.py
-python playlist_export.py
+python3 -m pip install --upgrade -r requirements.txt
+python3 spotify_import.py --liked_fuzzy
+python3 sync_with_others.py
+python3 youtubify.py convert
+python3 youtubify.py review
+python3 download.py
+python3 metadata.py
+python3 playlist_export.py

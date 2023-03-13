@@ -1,3 +1,3 @@
-python -m venv .\venv
+python3 -m venv .\venv
 .\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+pip3 install -r requirements.txt
