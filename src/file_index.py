@@ -11,7 +11,7 @@ class FileIndex:
         if folders:
             for folder in folders:
                 for i in os.listdir(folder):
-                    if not conf.is_audio_file(i):
+                    if not conf.is_audio_file(i) or os.path.isdir(os.path.join(folder, i)):
                         continue
                     key = i[:i.rindex('.')]
                     if key in self.file_map:

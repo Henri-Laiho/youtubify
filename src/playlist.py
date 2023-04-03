@@ -40,6 +40,9 @@ class Playlist:
                 else:
                     print('ERROR:', filename_no_extension, 'not found in local files')
                     continue
+                if index >= len(playlist_type.spotify_missing_paths):
+                    print('WARNING: device', playlist_type.playlist_file_prefix, 'configuration does not have enough local files folders')
+                    continue
                 path = playlist_type.os_path.join(playlist_type.spotify_missing_paths[index], filename)
                 entry = format.formatter(filename, j, path)
             else:
