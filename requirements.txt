@@ -1,4 +1,4 @@
-youtube-dl
+yt-dlp
 youtube-search
 numpy
 setuptools

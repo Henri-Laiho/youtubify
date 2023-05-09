@@ -1,13 +1,11 @@
 import json
 import logging
-import os
 from queue import Queue
 import threading
 import time
-import colorama
 import copy
 
-import youtube_dl
+import yt_dlp as youtube_dl
 
 from src import conf
 from src.persistance.storage import Storage
@@ -19,7 +17,6 @@ YT = 'yt'
 ISRC = 'isrc'
 FILENAME = 'filename'
 download_version = 1
-
 
 
 class DlThread(threading.Thread):

@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
     init_yt_isrc_tracks(tracks, playlists)
 
-    download_playlist(tracks, num_threads=16, log_handler=console)
+    download_playlist(tracks, num_threads=3, log_handler=console)
 
     Storage.save()
     print('Data saved.')

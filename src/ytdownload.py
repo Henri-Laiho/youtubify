@@ -1,10 +1,17 @@
 import logging
-from sys import prefix
 
-import youtube_dl
+import yt_dlp as youtube_dl
 import os
+import re
 
 from src.utils.fs_utils import ensure_dir, get_filename_ext, ytdl_extensions
+
+
+def sanitize_string(input_string):
+    sanitized_string = "".join([
+        ch if re.match(r'[A-Za-z0-9 ]', ch) else "%u" + format(ord(ch), '04x') for ch in input_string
+    ])
+    return sanitized_string
 
 
 class YtDownload(object):
@@ -48,12 +55,21 @@ class YtDownload(object):
                 else:
                     self.logger.info("File already downloaded, skipping: %s" % fname)
                     return
+        filename_sanitized = None
         if filename is not None:
-            self.ydl_opts['outtmpl'] = os.path.join(self.outdir, filename + '.%(ext)s')
+            filename_sanitized = sanitize_string(filename)
+            self.ydl_opts['outtmpl'] = os.path.join(self.outdir, filename_sanitized + '.%(ext)s')
         with youtube_dl.YoutubeDL(self.ydl_opts) as ydl:
             ydl.download([link])
         if filename is not None:
             self.ydl_opts['outtmpl'] = self.outtempl
+            fname = get_filename_ext(filename_sanitized, self.outdir)
+            if fname is not None:
+                ext = fname[fname.rfind('.'):]
+                os.rename(
+                    os.path.join(self.outdir, fname),
+                    os.path.join(self.outdir, filename + ext)
+                )
 
 
 def main():
