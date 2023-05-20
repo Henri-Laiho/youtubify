@@ -58,7 +58,8 @@ def add_compositions(playlists_json):
         comp = Composition(composition_name)
 
         for playlist_id in playlist_ids:
-            comp.add_playlist(id_to_plist[playlist_id])
+            if playlist_id in id_to_plist:
+                comp.add_playlist(id_to_plist[playlist_id])
 
         playlists.append(comp.to_playlist())
     return playlists
