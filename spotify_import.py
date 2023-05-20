@@ -12,7 +12,7 @@ if __name__ == '__main__':
     CliStorage.storage_setup()
 
     for _ in range(3):
-        config = Bunch(token=CliStorage.spotify_token, dump='liked,playlists', format='json', file=conf.playlists_file, liked_fuzzy=args.liked_fuzzy or 1)
+        config = Bunch(token=CliStorage.spotify_token, dump='liked,playlists', format='json', file=conf.playlists_file, liked_fuzzy=args.liked_fuzzy)
         CliStorage.spotify_token, CliStorage.user_id, CliStorage.user_displayname = spotify_backup.main(config)
         
         if CliStorage.spotify_token is not None:
