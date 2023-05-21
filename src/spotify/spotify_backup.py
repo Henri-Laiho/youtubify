@@ -176,6 +176,7 @@ def main(args):
             old_playlist_id_map = {playlist['id'] : playlist for playlist in old_playlists}
 
     liked_fuzzy = args.liked_fuzzy and old_playlist_id_map and me['id'] in old_playlist_id_map
+    reload = args.reload
     playlists = []
 
     def process_tracks(tracks):
@@ -224,7 +225,7 @@ def main(args):
         # List all tracks in each playlist
         for playlist_json in playlists_json:
             id = playlist_json['id']
-            if id not in old_playlist_id_map or playlist_json['snapshot_id'] != old_playlist_id_map[id]['snapshot_id']:
+            if reload or id not in old_playlist_id_map or playlist_json['snapshot_id'] != old_playlist_id_map[id]['snapshot_id']:
                 logging.info('Reloading playlist: {name} ({tracks[total]} songs)'.format(**playlist_json))
                 populate_tracks_and_make_playlist(playlist_json, playlist_json['tracks']['href'])
             else:
