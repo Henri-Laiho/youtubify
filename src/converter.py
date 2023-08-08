@@ -1,11 +1,14 @@
-import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
+from threading import Thread
+import tkinter as tk
+import concurrent.futures
 import subprocess
 import os
 import json
+import easygui
 
-PREFERENCES_FILE = '.converter.json'
+PREFERENCES_FILE = '.converter_data.json'
 
 
 def save_preferences(prefs):
@@ -17,17 +20,13 @@ def load_preferences():
     if os.path.exists(PREFERENCES_FILE):
         with open(PREFERENCES_FILE, 'r') as file:
             return json.load(file)
-    return {'file_directory': '/', 'selected_directory': '/'}
+    return {'file_directory': '.', 'selected_directory': '.'}
 
 
 def select_files():
-    files = filedialog.askopenfilenames(initialdir=preferences['file_directory'], title='Select Files',
-                                        filetypes=[(
-                                            "Audio files",
-                                            "*.aac;*.m4a;*.flac;*.mp3;*.opus;*.ogg;*.wav;*.ac3;*.alac;*.ape;*.au"
-                                            ";*.caf;*.dts;*.gsm;*.mka;*.mlp;*.mp2;*.mpc;*.ra;*.spx;*.tta;*.voc;*.w64"
-                                            ";*.wma"
-                                        )])
+    filetypes = "*.aac;*.m4a;*.flac;*.mp3;*.opus;*.ogg;*.wav;*.ac3;*.alac;*.ape;*.au;*.caf;*.dts;*.gsm;*.mka;*.mlp;*.mp2;*.mpc;*.ra;*.spx;*.tta;*.voc;*.w64;*.wma"
+    files = easygui.fileopenbox(default=preferences['file_directory'], filetypes=[filetypes], multiple=True)
+
     file_list.delete(0, tk.END)
     for file in files:
         file_list.insert(tk.END, file)
@@ -46,7 +45,7 @@ def select_directory():
     save_preferences(preferences)
 
 
-def convert_files():
+def convert_files_thread():
     directory = directory_entry.get()
     files = file_list.get(0, tk.END)
     format_option = format_var.get()
@@ -61,8 +60,7 @@ def convert_files():
     for file in files:
         output_file = os.path.join(directory, file.split('/')[-1].rsplit('.', 1)[0] + '.' + output_format)
         if os.path.isfile(output_file):
-            progress_bar['value'] += 1
-            root.update_idletasks()
+            root.after(0, lambda value=progress_bar['value'] + 1: progress_bar.config(value=value))
             continue
         command = ['ffmpeg', '-i', file, '-map_metadata', '0', '-y']
 
@@ -71,10 +69,14 @@ def convert_files():
 
         command.append(output_file)
         subprocess.run(command)
-        progress_bar['value'] += 1
-        root.update_idletasks()
+        root.after(0, lambda value=progress_bar['value'] + 1: progress_bar.config(value=value))
 
-    progress_bar['value'] = 0
+    root.after(0, lambda: progress_bar.config(value=0))
+
+
+def convert_files():
+    thread = Thread(target=convert_files_thread)
+    thread.start()
 
 
 preferences = load_preferences()
@@ -88,7 +90,7 @@ select_button.pack()
 file_list = tk.Listbox(root)
 file_list.pack(fill=tk.BOTH, expand=tk.YES)
 
-select_directory_button = tk.Button(root, text='Select Directory', command=select_directory)
+select_directory_button = tk.Button(root, text='Select Output Directory', command=select_directory)
 select_directory_button.pack()
 
 directory_entry = tk.Entry(root)  # Single-line entry widget for editing the selected directory
