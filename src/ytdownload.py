@@ -5,9 +5,9 @@ import os
 import re
 
 try:
-    from src.utils.fs_utils import ensure_dir, get_filename_ext, ytdl_extensions
+    from src.utils.fs_utils import ensure_dir, get_filename_ext
 except ImportError:
-    from utils.fs_utils import ensure_dir, get_filename_ext, ytdl_extensions
+    from utils.fs_utils import ensure_dir, get_filename_ext
 
 
 def sanitize_string(input_string):
@@ -39,7 +39,6 @@ class YtDownload(object):
             }]
         }
 
-
     def msg_hook(self, d):
         if self.update_status_callback:
             self.update_status_callback(d)
@@ -47,7 +46,6 @@ class YtDownload(object):
             self.logger.info('Done downloading, now converting ...')
         elif d['status'] == 'downloading':
             self.logger.info('downloading %s of %s @%s, ETA %s' % (d['_percent_str'], d['_total_bytes_str'], d['_speed_str'], d['_eta_str']))
-
 
     def download(self, link, filename, overwrite=False):
         if filename is not None:

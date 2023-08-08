@@ -2,7 +2,6 @@ from tkinter import ttk
 from tkinter import filedialog
 from threading import Thread
 import tkinter as tk
-import concurrent.futures
 import subprocess
 import os
 import json
@@ -24,8 +23,13 @@ def load_preferences():
 
 
 def select_files():
-    filetypes = "*.aac;*.m4a;*.flac;*.mp3;*.opus;*.ogg;*.wav;*.ac3;*.alac;*.ape;*.au;*.caf;*.dts;*.gsm;*.mka;*.mlp;*.mp2;*.mpc;*.ra;*.spx;*.tta;*.voc;*.w64;*.wma"
-    files = easygui.fileopenbox(default=preferences['file_directory'], filetypes=[filetypes], multiple=True)
+    filetypes = [
+        ["*.aac", "*.m4a", "*.flac", "*.mp3", "*.opus", "*.ogg", "*.wav", "*.ac3", "*.alac", "*.ape",
+         "*.au", "*.caf", "*.dts", "*.gsm", "*.mka", "*.mlp", "*.mp2", "*.mpc", "*.ra", "*.spx", "*.tta",
+         "*.voc", "*.w64", "*.wma", "Audio files"],
+    ]
+    files = easygui.fileopenbox(default=os.path.join(preferences['file_directory'], '*'), filetypes=filetypes,
+                                multiple=True)
 
     file_list.delete(0, tk.END)
     for file in files:
@@ -47,6 +51,8 @@ def select_directory():
 
 def convert_files_thread():
     directory = directory_entry.get()
+    if not os.path.isdir(directory):
+        os.makedirs(directory)
     files = file_list.get(0, tk.END)
     format_option = format_var.get()
     output_format, bitrate_option = format_option.split(' - ') if 'kbps' in format_option else (format_option, None)
