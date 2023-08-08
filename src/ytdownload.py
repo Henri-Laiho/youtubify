@@ -4,7 +4,10 @@ import yt_dlp as youtube_dl
 import os
 import re
 
-from src.utils.fs_utils import ensure_dir, get_filename_ext, ytdl_extensions
+try:
+    from src.utils.fs_utils import ensure_dir, get_filename_ext, ytdl_extensions
+except ImportError:
+    from utils.fs_utils import ensure_dir, get_filename_ext, ytdl_extensions
 
 
 def sanitize_string(input_string):
