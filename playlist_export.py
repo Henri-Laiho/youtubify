@@ -65,6 +65,19 @@ def add_compositions(playlists_json):
     return playlists
 
 
+def prepare_dirs():
+    ensure_dir(conf.playlists_export_folder)
+
+    for playlist_type in playlist_types:
+        directory = os.path.join(conf.playlists_export_folder, playlist_type.playlist_file_prefix)
+        ensure_dir(directory)
+
+        # Delete all playlist files in the playlist directory
+        for filename in os.listdir(directory):
+            if filename.endswith(extension):
+                os.remove(os.path.join(directory, filename))
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--no_local', action='store_true', help='don\'t include local files', default=False)
@@ -74,7 +87,7 @@ if __name__ == '__main__':
 
     local_file_index = FileIndex(conf.spotify_local_files_folders)
 
-    ensure_dir(conf.playlists_export_folder)
+    prepare_dirs()
 
     with open(conf.playlists_file, "r") as f:
         playlists_json = json.loads(f.read())
@@ -89,7 +102,6 @@ if __name__ == '__main__':
 
         for playlist_type in playlist_types:
             directory = os.path.join(conf.playlists_export_folder, playlist_type.playlist_file_prefix)
-            ensure_dir(directory)
 
             lines = playlist.to_format(playlist_format, playlist_type, local_file_index, no_local)
 
