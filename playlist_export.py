@@ -10,6 +10,8 @@ from src.file_index import FileIndex
 from src.local_files import LocalFileManager
 from src.composition import Composition
 from src.playlist_format import PlaylistFormat
+from src.youtube.playlists import get_authenticated_service, update_playlist, get_youtube_playlists, \
+    is_daily_youtube_quota_reached
 
 try:
     from conf.conf_playlist_export import playlist_types
@@ -52,7 +54,7 @@ def add_compositions(playlists_json):
 
     # TODO: parse playlists_json to Playlist objects in another function
     playlists = [Playlist.from_json(x) for x in playlists_json] + filemgr.get_playlists()
-    id_to_plist = {x.id : x for x in playlists}
+    id_to_plist = {x.id: x for x in playlists}
 
     for composition_name, playlist_ids in Storage.playlist_compositions.items():
         comp = Composition(composition_name)
@@ -81,9 +83,18 @@ def prepare_dirs():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--no_local', action='store_true', help='don\'t include local files', default=False)
+    parser.add_argument('-y', '--youtube', action='store_true', help='export to youtube instead', default=False)
     args = parser.parse_args()
     Storage.storage_setup()
     no_local = args.no_local
+    to_youtube = args.youtube
+    youtube = None
+    yt_playlists = None
+    if to_youtube:
+        youtube = get_authenticated_service()
+        if is_daily_youtube_quota_reached():
+            exit(-1)
+        yt_playlists = get_youtube_playlists(youtube)
 
     local_file_index = FileIndex(conf.spotify_local_files_folders)
 
@@ -100,14 +111,21 @@ if __name__ == '__main__':
         list_name = playlist.name if playlist.name else playlist.id
         print(i, list_name)
 
-        for playlist_type in playlist_types:
-            directory = os.path.join(conf.playlists_export_folder, playlist_type.playlist_file_prefix)
+        if to_youtube:
+            video_links = [x for x in [Storage.get_access_url(x.isrc) for x in playlist.tracks if x.isrc is not None] if x is not None]
+            update_playlist(youtube, "(S) " + list_name, video_links, yt_playlists)
+        else:
+            for playlist_type in playlist_types:
+                directory = os.path.join(conf.playlists_export_folder, playlist_type.playlist_file_prefix)
 
-            lines = playlist.to_format(playlist_format, playlist_type, local_file_index, no_local)
+                lines = playlist.to_format(playlist_format, playlist_type, local_file_index, no_local)
 
-            with open(
-                os.path.join(directory, path_encode(list_name, fullwidth_path_encoding) + extension),
-                mode='w+',
-                encoding='utf8') as f:
-                for line in lines:
-                    f.write(line + '\n')
+                with open(
+                    os.path.join(directory, path_encode(list_name, fullwidth_path_encoding) + extension),
+                    mode='w+',
+                    encoding='utf8') as f:
+                    for line in lines:
+                        f.write(line + '\n')
+
+    Storage.save()
+    print('Data saved.')

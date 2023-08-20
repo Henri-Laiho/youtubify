@@ -8,6 +8,8 @@ from src.persistance.old_storage import OldStorage
 from src.persistance.cli_storage import CliStorage
 from src.utils.fs_utils import ensure_dir
 
+DAY_MS = 1000 * 60 * 60 * 24
+
 private_id_prefix = 'HLY'
 autogen_detector_version = 1
 folder_id_file = '.id'
@@ -85,6 +87,7 @@ class Storage:
     playlist_compositions = {}
     download_library_id = None
     private_data_update_time = 0
+    youtube_api_daily_requests = {'reset_time': timems(), 'count': 0}
 
     @staticmethod
     def reset():
@@ -101,6 +104,7 @@ class Storage:
         Storage.playlist_compositions = {}
         Storage.download_library_id = None
         Storage.private_data_update_time = 0
+        Storage.youtube_api_daily_requests = {'reset_time': timems(), 'count': 0}
 
     @staticmethod
     def load_from_old_storage():
@@ -122,6 +126,7 @@ class Storage:
         Storage.active_playlist_ids = OldStorage.active_playlist_ids
         Storage.playlist_compositions = OldStorage.playlist_compositions
         Storage.private_data_update_time = now
+        Storage.youtube_api_daily_requests = {'reset_time': timems(), 'count': 0}
 
     @staticmethod
     def get_private_save_dict():
@@ -129,6 +134,7 @@ class Storage:
             'private_data_update_time' : Storage.private_data_update_time,
             'active_playlist_ids': Storage.active_playlist_ids,
             'playlist_compositions': Storage.playlist_compositions,
+            'youtube_api_daily_requests': Storage.youtube_api_daily_requests,
         }
         
     @staticmethod
@@ -161,6 +167,8 @@ class Storage:
             Storage.active_playlist_ids = data['active_playlist_ids']
         if 'playlist_compositions' in data:
             Storage.playlist_compositions = data['playlist_compositions']
+        if 'youtube_api_daily_requests' in data:
+            Storage.youtube_api_daily_requests = data['youtube_api_daily_requests']
 
     @staticmethod
     def load_shared_dict(data):
@@ -211,6 +219,8 @@ class Storage:
                     Storage.active_playlist_ids = db['active_playlist_ids']
                 if 'playlist_compositions' in db:
                     Storage.playlist_compositions = db['playlist_compositions']
+                if 'youtube_api_daily_requests' in db:
+                    Storage.youtube_api_daily_requests = db['youtube_api_daily_requests']
 
     @staticmethod
     def set_track_data(isrc: str, artists: list, title: str, filename: str):
@@ -309,6 +319,17 @@ class Storage:
     @staticmethod
     def get_metadata_version(isrc: str):
         return Storage.metadata_version[isrc][1] if isrc in Storage.metadata_version else -1
+
+    @staticmethod
+    def get_youtube_daily_request_count():
+        reset_time = Storage.youtube_api_daily_requests['reset_time']
+        if timems() - reset_time > DAY_MS:
+            Storage.youtube_api_daily_requests['count'] = 0
+        return Storage.youtube_api_daily_requests['count']
+
+    @staticmethod
+    def add_youtube_daily_request(amount=1):
+        Storage.youtube_api_daily_requests['count'] = Storage.get_youtube_daily_request_count() + amount
 
     @staticmethod
     def set_metadata_version(isrc: str, version: int):
