@@ -16,6 +16,7 @@ class Playlist:
         self.name = None
         self.is_active = False
         self.isrc_map = {}
+        self.creator_dn = None
 
     def to_format(self, format: PlaylistFormat, playlist_type: PlaylistExportDevice, local_files_index: FileIndex, skip_local_files: bool):
         lines = []
@@ -65,6 +66,10 @@ class Playlist:
         self.name = playlist_json['name']
         if 'snapshot_id' in playlist_json:
             self.snapshot_id = playlist_json['snapshot_id']
+        if 'owner' in playlist_json and 'display_name' in playlist_json['owner']:
+            self.creator_dn = playlist_json['owner']['display_name']
+        elif self.name == 'Liked Songs':
+            self.creator_dn = self.id
 
     def set_tracks(self, tracks_json):
         self.tracks = [Track.from_spotify_json(x) for x in tracks_json]
@@ -81,11 +86,16 @@ class Playlist:
         return self.id in composition
 
     def get_menu_string_with_active_state(self):
-        return f"{'+' if self.is_active else ' '} {self.name if self.name else self.id}"
+        return f"{'+' if self.is_active else ' '} {self.get_displayname()}"
+
+    def get_displayname(self, with_creator_dn=True):
+        return f"{self.name if self.name else self.id}" + (
+            f" / By {self.creator_dn}" if with_creator_dn and self.creator_dn else ""
+        )
 
     # TODO: use composition class instead of dict
     def get_menu_string_with_composition_status(self, composition: dict):
-        return f"{'+' if self.is_in_composition(composition) else ' '} {self.name if self.name else self.id}"
+        return f"{'+' if self.is_in_composition(composition) else ' '} {self.get_displayname()}"
 
     def __str__(self):
         return self.name if self.name else self.id

@@ -110,7 +110,7 @@ def convert_playlist_tracks_to_youtube_links(playlist: Playlist):
 
     for i, track in enumerate(tracks):
         # TODO: use logger
-        print(f'\rProcessing {playlist.name}: {i}/{number_of_tracks}', end='')
+        print(f'\rProcessing {playlist.get_displayname()}: {i}/{number_of_tracks}', end='')
         # TODO: solve deleted playlists hanging out in Storage, deimplement soft delete?
         convert_track_to_youtube_link(track)
     print()
@@ -123,6 +123,11 @@ def convert_active_playlists_to_youtube_links():
     for playlist in playlists:
         if not playlist.is_active: continue
         convert_playlist_tracks_to_youtube_links(playlist)
+
+
+def open_browser_link_if_valid(url):
+    if isinstance(url, str) and url:
+        webbrowser.open(url)
 
 
 def review_with_browser():
@@ -138,8 +143,8 @@ def review(browser=False):
 
         if browser:
             if sus_track.url:
-                webbrowser.open(sus_track.url)
-            webbrowser.open(get_search_url(get_search_terms(sus_track.artists, sus_track.title)))
+                open_browser_link_if_valid(sus_track.url)
+            open_browser_link_if_valid(get_search_url(get_search_terms(sus_track.artists, sus_track.title)))
 
         while True:
             prompt_commands = {'Enter new link': get_new_link,

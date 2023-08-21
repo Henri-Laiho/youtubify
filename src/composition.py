@@ -24,7 +24,7 @@ class Composition:
 		result.tracks = ordered_tracks if self.with_duplicates else list(dict.fromkeys(ordered_tracks))
 		result.tracks.reverse()
 
-		playlist_names = ' & '.join([x.name for x in self.playlists])
+		playlist_names = ' & '.join([x.get_displayname(False) for x in self.playlists])
 		result.name = f"{self.name} ({playlist_names})"
 		return result
 
@@ -33,5 +33,3 @@ class Composition:
 		for playlist in self.playlists:
 			tracks += playlist.tracks
 		return tracks
-
-

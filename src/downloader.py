@@ -80,7 +80,7 @@ def load_spotify_playlists(file) -> list:
 def pick_spotify_playlist(playlists: list, idx=None) -> Playlist:
     if idx is None:
         for i, playlist in enumerate(playlists):
-            print(i, playlist.name)
+            print(i, playlist.get_displayname())
     else:
         return playlists[idx]
 

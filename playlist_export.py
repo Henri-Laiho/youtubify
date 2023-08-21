@@ -108,7 +108,7 @@ if __name__ == '__main__':
     playlists = add_compositions(playlists_json)
 
     for i, playlist in enumerate(playlists):
-        list_name = playlist.name if playlist.name else playlist.id
+        list_name = playlist.get_displayname()
         print(i, list_name)
 
         if to_youtube:
