@@ -80,6 +80,9 @@ class Storage:
     manual_confirm = {}
     isrc_to_track_data = {}
     metadata_version = {}
+    lib_state_meta = {
+        'playlist_belonging_update_time': (0, 0),
+    }
     ignored_tracks = {}
     active_playlist_ids = {}
     isrc_local_downloaded_status = {}
@@ -97,6 +100,9 @@ class Storage:
         Storage.manual_confirm = {}
         Storage.isrc_to_track_data = {}
         Storage.metadata_version = {}
+        Storage.lib_state_meta = {
+            'playlist_belonging_update_time': (0, 0),
+        }
         Storage.ignored_tracks = {}
         Storage.active_playlist_ids = {}
         Storage.isrc_local_downloaded_status = {}
@@ -154,6 +160,7 @@ class Storage:
         return {
             'metadata_version': Storage.metadata_version,
             'isrc_local_downloaded_status': Storage.isrc_local_downloaded_status,
+            'META': Storage.lib_state_meta,
         }
 
     @staticmethod
@@ -351,6 +358,14 @@ class Storage:
             return private_id_prefix + shorten(title) + shorten(artists) + str(duration_floor_s)
         else:
             raise RuntimeError('artists must be string or list')
+
+    @staticmethod
+    def get_time_since_lib_playlist_belonging_last_updated_ms():
+        return timems() - Storage.lib_state_meta['playlist_belonging_update_time'][1]
+
+    @staticmethod
+    def set_lib_playlist_belonging_updated():
+        Storage.lib_state_meta['playlist_belonging_update_time'] = (timems(), timems())
 
     @staticmethod
     def set_composition(key, comp):
