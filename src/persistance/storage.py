@@ -215,7 +215,8 @@ class Storage:
     def import_data(dicts: list, local_db: dict):
         for table_key in local_db:
             for db in dicts:
-                import_table(local_db[table_key], db[table_key], Storage.__new_key_monitor)
+                if  table_key in db:
+                    import_table(local_db[table_key], db[table_key], Storage.__new_key_monitor)
 
     @staticmethod
     def import_private_data(private_dicts: list, _):
