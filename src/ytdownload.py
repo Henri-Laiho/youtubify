@@ -17,8 +17,19 @@ def sanitize_string(input_string):
     return sanitized_string
 
 
+class LowerCaseFileIndex:
+    instance = {}
+
+    @staticmethod
+    def get(directory):
+        if directory not in LowerCaseFileIndex.instance:
+            LowerCaseFileIndex.instance[directory] = {x.lower(): x for x in os.listdir(directory)}
+        return LowerCaseFileIndex.instance[directory]
+
+
 class YtDownload(object):
-    def __init__(self, outDir='downloaded', name='downloader', logger=logging.getLogger(''), update_status_callback=None):
+    def __init__(self, outDir='downloaded', name='downloader', logger=logging.getLogger(''),
+                 update_status_callback=None):
         self.outdir = outDir
         self.name = name
         self.outtempl = os.path.join(outDir, '%(title)s.%(ext)s')
@@ -45,7 +56,8 @@ class YtDownload(object):
         elif d['status'] == 'finished':
             self.logger.info('Done downloading, now converting ...')
         elif d['status'] == 'downloading':
-            self.logger.info('downloading %s of %s @%s, ETA %s' % (d['_percent_str'], d['_total_bytes_str'], d['_speed_str'], d['_eta_str']))
+            self.logger.info('downloading %s of %s @%s, ETA %s' % (
+            d['_percent_str'], d['_total_bytes_str'], d['_speed_str'], d['_eta_str']))
 
     def download(self, link, filename, overwrite=False):
         if filename is not None:
@@ -54,6 +66,18 @@ class YtDownload(object):
                 if overwrite:
                     os.remove(os.path.join(self.outdir, fname))
                 else:
+                    if os.name == 'nt':
+                        idx = LowerCaseFileIndex.get(self.outdir)
+                        assert fname.lower() in idx
+                        existing_fname = idx[fname.lower()]
+                        if fname != existing_fname:
+                            self.logger.info("Found already downloaded file with different casing %s, renaming..." % fname)
+                            assert fname.lower() == existing_fname.lower()
+                            os.rename(
+                                os.path.join(self.outdir, existing_fname),
+                                os.path.join(self.outdir, fname)
+                            )
+                            return
                     self.logger.info("File already downloaded, skipping: %s" % fname)
                     return
         filename_sanitized = None

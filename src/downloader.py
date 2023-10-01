@@ -20,16 +20,16 @@ download_version = 1
 
 
 class DlThread(threading.Thread):
-    def __init__(self, threadID, name, queue : Queue, queueLock, checkExit, update_status_callback, log_handler):
+    def __init__(self, thread_id, name, queue: Queue, queue_lock, check_exit, update_status_callback, log_handler):
         threading.Thread.__init__(self)
-        self.threadID = threadID
+        self.threadID = thread_id
         self.name = name
         self.queue = queue
-        self.queueLock = queueLock
-        self.checkExit = checkExit
+        self.queueLock = queue_lock
+        self.checkExit = check_exit
         self.log = logging.Logger(name, level=logging.INFO)
         if log_handler: self.log.addHandler(log_handler)
-        self.downloader = YtDownload(outDir=conf.downloaded_audio_folder, logger=self.log, update_status_callback=lambda data: update_status_callback(threadID, data))
+        self.downloader = YtDownload(outDir=conf.downloaded_audio_folder, logger=self.log, update_status_callback=lambda data: update_status_callback(thread_id, data))
         self.errors = 0
 
     def run(self):
@@ -77,14 +77,6 @@ def load_spotify_playlists(file) -> list:
     return playlists
 
 
-def pick_spotify_playlist(playlists: list, idx=None) -> Playlist:
-    if idx is None:
-        for i, playlist in enumerate(playlists):
-            print(i, playlist.get_displayname())
-    else:
-        return playlists[idx]
-
-
 def init_yt_isrc_tracks(tracks, playlists : list):
     for track in tracks:
         isrc = track[ISRC]
@@ -114,8 +106,8 @@ def download_playlist(tracks, num_threads=1, log_handler=None):
     workQueue = Queue()
     threads = []
     thread_status_lock = threading.Lock()
-    last_status = {'print_time' : 0, 'lines' : 0}
-    thread_statuses = {-1 : {'_eta_str': '0s', '_percent_str': '  0.0%', '_speed_str': '  0B/s', '_total_bytes_str': '0B', 'filename': '', 'status': '', 'speed': 0}}
+    last_status = {'print_time': 0, 'lines': 0}
+    thread_statuses = {-1: {'_eta_str': '0s', '_percent_str': '  0.0%', '_speed_str': '  0B/s', '_total_bytes_str': '0B', 'filename': '', 'status': '', 'speed': 0}}
     
     def checkExit():
         return exitFlag

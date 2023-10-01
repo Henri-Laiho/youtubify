@@ -169,7 +169,7 @@ class Track:
         if os.path.isfile(old_path):
             print('Names changed: renaming file "%s" to "%s"' % (old_filename, self.filename))
             if os.path.isfile(new_path) and not (os.name == 'nt' and old_path.lower() == new_path.lower()):
-                print('New file already exists, deleting old file "%s"' % (old_filename))
+                print('New file already exists, deleting old file "%s"' % old_filename)
                 os.remove(old_path)
             else:
                 os.rename(old_path, new_path)
