@@ -55,8 +55,11 @@ def convert_files_thread():
         os.makedirs(directory)
     files = file_list.get(0, tk.END)
     format_option = format_var.get()
-    output_format, bitrate_option = format_option.split(' - ') if 'kbps' in format_option else (format_option, None)
-
+    output_formats = format_option.split(' - ')
+    output_format = output_formats[0]
+    bitrate_option = None
+    if 'kbps' in format_option:
+        bitrate_option = output_formats[1]
     if bitrate_option:
         bitrate_option = bitrate_option.replace('kbps', 'k')  # Removing "kbps" suffix
 
@@ -64,7 +67,7 @@ def convert_files_thread():
     progress_bar['value'] = 0
 
     for file in files:
-        output_file = os.path.join(directory, file.split('/')[-1].rsplit('.', 1)[0] + '.' + output_format)
+        output_file = os.path.join(directory, file.split(os.path.sep)[-1].rsplit('.', 1)[0] + '.' + output_format)
         if os.path.isfile(output_file):
             root.after(0, lambda value=progress_bar['value'] + 1: progress_bar.config(value=value))
             continue
@@ -72,6 +75,8 @@ def convert_files_thread():
 
         if output_format == 'mp3' and bitrate_option:
             command += ['-b:a', bitrate_option]
+        elif format_option == 'wav - 22050Hz':
+            command += ['-ar', '22050']
 
         command.append(output_file)
         subprocess.run(command)
@@ -105,7 +110,7 @@ directory_entry.insert(0, preferences['selected_directory'])  # Set the initial 
 
 format_var = tk.StringVar(root)
 format_var.set('wav')  # default value
-format_menu = tk.OptionMenu(root, format_var, 'mp3 - 320kbps', 'mp3 - 192kbps', 'flac', 'wav')
+format_menu = tk.OptionMenu(root, format_var, 'mp3 - 320kbps', 'mp3 - 192kbps', 'flac', 'wav', 'wav - 22050Hz')
 format_menu.pack()
 
 convert_button = tk.Button(root, text='Convert Files', command=convert_files)

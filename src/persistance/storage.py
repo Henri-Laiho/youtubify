@@ -329,6 +329,10 @@ class Storage:
         return Storage.metadata_version[isrc][1] if isrc in Storage.metadata_version else -1
 
     @staticmethod
+    def get_isrc_to_track_datas():
+        return { k: v[1] for k, v in Storage.isrc_to_track_data.items() }
+
+    @staticmethod
     def get_youtube_daily_request_count():
         reset_time = Storage.youtube_api_daily_requests['reset_time']
         if timems() - reset_time > DAY_MS:

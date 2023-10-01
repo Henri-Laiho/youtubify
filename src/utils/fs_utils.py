@@ -1,7 +1,7 @@
 ﻿import os
 
 
-ytdl_extensions = ['.opus', '.m4a']
+ytdl_extensions = ['.opus', '.m4a', '.mp3']
 
 
 def is_file_on_disk(filename, directory):

@@ -48,7 +48,7 @@ def search_track(max_results=100):
     # The last implementation counted how many keywords matched.
     # Since this does not seem crucial, reimplementing it - now it counts every math with an artist or title.
 
-    tracks = map(lambda x: Track.from_storage_isrc_to_track_data_isrc(*x), Storage.isrc_to_track_data.items())
+    tracks = map(lambda x: Track.from_storage_isrc_to_track_data_isrc(*x), Storage.get_isrc_to_track_datas().items())
     while True:
         search_string = input("Search track; or enter 'q' to return to menu: ")
         if search_string == 'q':

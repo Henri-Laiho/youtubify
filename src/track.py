@@ -125,7 +125,7 @@ class Track:
         track.isrc = isrc
         track.name = track_json['title']
         track.artists = track_json['artists']
-        track.filename = track_json['filename']
+        track.filename = track_json['filename'] if 'filename' in track_json else None
         return track
 
     def matches_search_keywords(self, keywords):
