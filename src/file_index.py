@@ -1,4 +1,5 @@
 ﻿import os
+import unicodedata
 from src import conf
 
 
@@ -14,10 +15,13 @@ class FileIndex:
                     if not conf.is_audio_file(i) or os.path.isdir(os.path.join(folder, i)):
                         continue
                     key = i[:i.rindex('.')]
-                    if key in self.file_map:
+                    key_norm = unicodedata.normalize('NFC', key)
+                    if key in self.file_map or key_norm in self.file_map:
                         print('WARNING: track', key, 'has multiple instances in spotify local files')
                     self.file_map[key] = i
+                    self.file_map[key_norm] = i
                     self.folder_map[key] = folder
+                    self.folder_map[key_norm] = folder
         self.folders_index = {x: i for i, x in enumerate(folders)}
         
 
