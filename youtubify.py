@@ -175,6 +175,7 @@ def get_flacified_path(in_filename_ext: str):
 
 def convert_track_file_to_flac(in_path: str, in_filename_ext: str):
     flac_filepath = get_flacified_path(in_filename_ext)
+    print(in_filename_ext)
 
     # Analyze the audio file for maximum volume
     analysis_command = [
@@ -182,7 +183,10 @@ def convert_track_file_to_flac(in_path: str, in_filename_ext: str):
         '-af', 'volumedetect',
         '-f', 'null', '-'
     ]
-    result = subprocess.run(analysis_command, capture_output=True, text=True, encoding='utf-8')
+    try:
+        result = subprocess.run(analysis_command, capture_output=True, text=True, encoding='utf-8')
+    except IndexError:
+        result = subprocess.run(analysis_command, capture_output=True, text=True)
 
     # Regex to extract max_volume from analysis
     max_volume_match = re.search(r"max_volume: ([\-\d\.]+) dB", result.stderr)
