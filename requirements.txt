@@ -1,6 +1,6 @@
 yt-dlp
 youtube-search
-numpy~=1.21.6
+numpy
 setuptools~=68.0.0
 wget~=3.2
 levenshtein~=0.21.1

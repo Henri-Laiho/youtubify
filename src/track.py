@@ -130,8 +130,12 @@ class Track:
         # TODO: better handling for no data
         track_instance.is_local = track['is_local']
         if not track_instance.is_local:
-            track_instance.isrc = track['external_ids']['isrc']
-            track_instance.album_total_tracks = album['total_tracks']
+            if not 'isrc' in track['external_ids']:
+                track_instance.is_local = True
+                print(f'ERROR: track {track_instance.filename} has no ISRC')
+            else:
+                track_instance.isrc = track['external_ids']['isrc']
+                track_instance.album_total_tracks = album['total_tracks']
         track_instance.has_all_data = True
         return track_instance
 

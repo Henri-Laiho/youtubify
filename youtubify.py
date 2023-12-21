@@ -7,6 +7,7 @@ import os
 import webbrowser
 
 from src import conf
+from src.composition import add_compositions
 from src.file_index import FileIndex
 from src.persistance.storage import Storage, SusCode
 from src.playlist import Playlist
@@ -19,6 +20,7 @@ from src.track import Track, SusTrack
 from src.local_files import LocalFileManager
 
 singleton_spotify_playlists = []
+singleton_compositions_playlists = []
 singleton_local_file_manager = []
 
 
@@ -214,7 +216,7 @@ def convert_track_file_to_flac(in_path: str, in_filename_ext: str):
 def convert_flacify_playlists_files_to_flac(overwrite: bool = False):
     local_file_index = FileIndex(conf.spotify_local_files_folders)
 
-    playlists = get_playlists()
+    playlists = get_playlists_with_compositions()
 
     path_to_fname_ext = {}
     for playlist in playlists:
@@ -233,7 +235,7 @@ def convert_flacify_playlists_files_to_flac(overwrite: bool = False):
             else:
                 fname_ext = get_filename_ext(track.filename, conf.downloaded_audio_folder)
                 if not fname_ext:
-                    print(f'\nWARNING: track "{fname_ext}" missing')
+                    print(f'\nWARNING: track "{track.filename}" missing')
                     continue
                 path = os.path.join(conf.downloaded_audio_folder, fname_ext)
                 path_to_fname_ext[path] = fname_ext
@@ -246,12 +248,15 @@ def convert_flacify_playlists_files_to_flac(overwrite: bool = False):
 
     ensure_dir(conf.flacified_audio_folder)
     number_of_tracks = len(path_to_fname_ext) - len(to_skip)
-    for i, (path, fname_ext) in enumerate(path_to_fname_ext.items()):
+    print(f'Skipping {len(to_skip)} present flac files')
+    i = 1
+    for path, fname_ext in path_to_fname_ext.items():
         if path in to_skip:
             continue
         # TODO: use logger
         print(f'Flacifying tracks: {i}/{number_of_tracks}')
-        convert_track_file_to_flac(path, fname_ext)
+        convert_track_file_to_flac(str(path), fname_ext)
+        i += 1
 
 
 def convert_flacify_playlists_files_to_flac_overwrite():
@@ -325,6 +330,13 @@ def get_playlists() -> [Playlist]:
     return singleton_spotify_playlists
 
 
+def get_playlists_with_compositions() -> [Playlist]:
+    if len(singleton_compositions_playlists) == 0:
+        with open(conf.playlists_file, "r") as f:
+            singleton_compositions_playlists.extend(add_compositions(json.loads(f.read())))
+    return singleton_compositions_playlists
+
+
 def list_playlists(playlists: [Playlist] = None) -> [Playlist]:
     if playlists is None:
         playlists = get_playlists()
@@ -333,9 +345,8 @@ def list_playlists(playlists: [Playlist] = None) -> [Playlist]:
     return playlists
 
 
-def list_flacify_playlists(playlists: [Playlist] = None) -> [Playlist]:
-    if playlists is None:
-        playlists = get_playlists()
+def list_flacify_playlists() -> [Playlist]:
+    playlists = get_playlists_with_compositions()
     for i, playlist in enumerate(playlists):
         click.echo(f"{i:>5} {playlist.get_menu_string_with_flacify_state()}")
     return playlists
@@ -401,7 +412,7 @@ def toggle_active_playlists():
 
 def toggle_flacify_playlists():
     while True:
-        playlists = get_playlists()
+        playlists = get_playlists_with_compositions()
         prompts = [p.get_menu_string_with_flacify_state() for p in playlists] + ['Back']
         selected = Menu(prompts).show()
         selected_prompt = prompts[selected]
@@ -471,7 +482,7 @@ def lsflacify():
 @cli.command("set_flacify")
 @click.argument('playlist_number', type=int)
 def flacify_playlist(playlist_number: int):
-    get_playlists()[playlist_number].set_flacify(True)
+    get_playlists_with_compositions()[playlist_number].set_flacify(True)
     Storage.save()
     print('Data saved.')
 
@@ -479,7 +490,7 @@ def flacify_playlist(playlist_number: int):
 @cli.command("unset_flacify")
 @click.argument('playlist_number', type=int)
 def deflacify_playlist(playlist_number):
-    get_playlists()[playlist_number].set_flacify(False)
+    get_playlists_with_compositions()[playlist_number].set_flacify(False)
     Storage.save()
     print('Data saved.')
 

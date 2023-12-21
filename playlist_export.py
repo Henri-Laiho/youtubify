@@ -2,13 +2,10 @@ import argparse
 import json
 import os
 
+from src.composition import add_compositions
 from src.track import fullwidth_path_encoding
 from src.track import path_encode
-from src.track import Track
-from src.playlist import Playlist
 from src.file_index import FileIndex
-from src.local_files import LocalFileManager
-from src.composition import Composition
 from src.playlist_format import PlaylistFormat
 from src.youtube.playlists import get_authenticated_service, update_playlist, get_youtube_playlists, \
     is_daily_youtube_quota_reached
@@ -19,9 +16,9 @@ except ImportError:
     playlist_types = None
     print('Copy ./conf/conf_playlist_export.py.example to ./conf/conf_playlist_export.py and modify if needed.')
     exit(-1)
-from src import conf, downloader
+from src import conf
 from src.persistance.storage import Storage
-from src.ytdownload import ensure_dir, get_filename_ext
+from src.ytdownload import ensure_dir
 
 # TODO: implement UI for mode choice
 mode = 'm3u8'
@@ -47,24 +44,6 @@ else:
     raise RuntimeError('Invalid mode')
 
 playlist_format = PlaylistFormat('m3u8', "#EXTM3U", format_m3u8, '.m3u8')
-
-
-def add_compositions(playlists_json):
-    filemgr = LocalFileManager()
-
-    # TODO: parse playlists_json to Playlist objects in another function
-    playlists = [Playlist.from_json(x) for x in playlists_json] + filemgr.get_playlists()
-    id_to_plist = {x.id: x for x in playlists}
-
-    for composition_name, playlist_ids in Storage.playlist_compositions.items():
-        comp = Composition(composition_name)
-
-        for playlist_id in playlist_ids:
-            if playlist_id in id_to_plist:
-                comp.add_playlist(id_to_plist[playlist_id])
-
-        playlists.append(comp.to_playlist())
-    return playlists
 
 
 def prepare_dirs():

@@ -16,6 +16,8 @@ class PlaylistExportDevice:
         self.playlist_file_prefix = playlist_file_prefix
         self.os_path = os_path
         self.flac = flac
+        if flac:
+            self.spotify_missing_paths = [self.flacified_path]*len(spotify_missing_paths)
 
     def get_file_full_path(self, filename: str):
         return self.os_path.join(self.flacified_path if self.flac else self.downloaded_path, filename)
