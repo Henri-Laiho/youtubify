@@ -185,8 +185,8 @@ def convert_track_file_to_flac(in_path: str, in_filename_ext: str):
     ]
     try:
         result = subprocess.run(analysis_command, capture_output=True, text=True, encoding='utf-8')
-    except IndexError:
-        result = subprocess.run(analysis_command, capture_output=True, text=True)
+    except (IndexError, UnicodeDecodeError):
+        result = subprocess.run(analysis_command, capture_output=True, text=True, encoding='windows-1252')
 
     # Regex to extract max_volume from analysis
     max_volume_match = re.search(r"max_volume: ([\-\d\.]+) dB", result.stderr)
