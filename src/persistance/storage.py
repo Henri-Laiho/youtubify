@@ -85,6 +85,7 @@ class Storage:
     }
     ignored_tracks = {}
     active_playlist_ids = {}
+    flacify_playlist_ids = {}
     isrc_local_downloaded_status = {}
     url_download_errors = {}
     playlist_compositions = {}
@@ -105,6 +106,7 @@ class Storage:
         }
         Storage.ignored_tracks = {}
         Storage.active_playlist_ids = {}
+        Storage.flacify_playlist_ids = {}
         Storage.isrc_local_downloaded_status = {}
         Storage.url_download_errors = {}
         Storage.playlist_compositions = {}
@@ -130,6 +132,7 @@ class Storage:
         Storage.isrc_local_downloaded_status = {isrc: (now, OldStorage.isrc_local_downloaded_status[isrc]) for isrc in OldStorage.isrc_local_downloaded_status}
         Storage.metadata_version = {isrc: (now, OldStorage.metadata_version[isrc]) for isrc in OldStorage.metadata_version}
         Storage.active_playlist_ids = OldStorage.active_playlist_ids
+        Storage.flacify_playlist_ids = {}
         Storage.playlist_compositions = OldStorage.playlist_compositions
         Storage.private_data_update_time = now
         Storage.youtube_api_daily_requests = {'reset_time': timems(), 'count': 0}
@@ -139,6 +142,7 @@ class Storage:
         return {
             'private_data_update_time' : Storage.private_data_update_time,
             'active_playlist_ids': Storage.active_playlist_ids,
+            'flacify_playlist_ids': Storage.flacify_playlist_ids,
             'playlist_compositions': Storage.playlist_compositions,
             'youtube_api_daily_requests': Storage.youtube_api_daily_requests,
         }
@@ -172,6 +176,8 @@ class Storage:
 
         if 'active_playlist_ids' in data:
             Storage.active_playlist_ids = data['active_playlist_ids']
+        if 'flacify_playlist_ids' in data:
+            Storage.flacify_playlist_ids = data['flacify_playlist_ids']
         if 'playlist_compositions' in data:
             Storage.playlist_compositions = data['playlist_compositions']
         if 'youtube_api_daily_requests' in data:
@@ -225,6 +231,8 @@ class Storage:
                 Storage.private_data_update_time = db['private_data_update_time']
                 if 'active_playlist_ids' in db:
                     Storage.active_playlist_ids = db['active_playlist_ids']
+                if 'flacify_playlist_ids' in db:
+                    Storage.flacify_playlist_ids = db['flacify_playlist_ids']
                 if 'playlist_compositions' in db:
                     Storage.playlist_compositions = db['playlist_compositions']
                 if 'youtube_api_daily_requests' in db:
@@ -299,6 +307,15 @@ class Storage:
     @staticmethod
     def is_active_playlist(playlist_id: str):
         return playlist_id in Storage.active_playlist_ids and Storage.active_playlist_ids[playlist_id]
+
+    @staticmethod
+    def set_flacify_playlist(playlist_id: str, is_flacify: bool):
+        Storage.private_data_update_time = timems()
+        Storage.flacify_playlist_ids[playlist_id] = is_flacify
+
+    @staticmethod
+    def is_flacify_playlist(playlist_id: str):
+        return playlist_id in Storage.flacify_playlist_ids and Storage.flacify_playlist_ids[playlist_id]
 
     @staticmethod
     def is_manual_confirm(isrc: str):

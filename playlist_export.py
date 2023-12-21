@@ -97,6 +97,7 @@ if __name__ == '__main__':
         yt_playlists = get_youtube_playlists(youtube)
 
     local_file_index = FileIndex(conf.spotify_local_files_folders)
+    flac_file_index = FileIndex([conf.flacified_audio_folder])
 
     prepare_dirs()
 
@@ -112,18 +113,20 @@ if __name__ == '__main__':
         print(i, list_name)
 
         if to_youtube:
-            video_links = [x for x in [Storage.get_access_url(x.isrc) for x in playlist.tracks if x.isrc is not None] if x is not None]
+            video_links = [x for x in [Storage.get_access_url(x.isrc) for x in playlist.tracks if x.isrc is not None] if
+                           x is not None]
             update_playlist(youtube, "(S) " + list_name, video_links, yt_playlists)
         else:
             for playlist_type in playlist_types:
                 directory = os.path.join(conf.playlists_export_folder, playlist_type.playlist_file_prefix)
 
-                lines = playlist.to_format(playlist_format, playlist_type, local_file_index, no_local)
+                lines = playlist.to_format(playlist_format, playlist_type,
+                                           flac_file_index if playlist_type.flac else local_file_index, no_local)
 
                 with open(
-                    os.path.join(directory, path_encode(list_name, fullwidth_path_encoding) + extension),
-                    mode='w+',
-                    encoding='utf8') as f:
+                        os.path.join(directory, path_encode(list_name, fullwidth_path_encoding) + extension),
+                        mode='w+',
+                        encoding='utf8') as f:
                     for line in lines:
                         f.write(line + '\n')
 

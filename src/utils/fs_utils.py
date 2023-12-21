@@ -1,11 +1,11 @@
 ﻿import os
 
 
-ytdl_extensions = ['.opus', '.m4a', '.mp3']
+ytdl_extensions = ['.opus', '.m4a', '.mp3', '.flac']
 
 
 def is_file_on_disk(filename, directory):
-   return get_file_extension_if_exists(filename, directory) is not None
+    return get_file_extension_if_exists(filename, directory) is not None
 
 
 def get_file_extension_if_exists(filename, directory):

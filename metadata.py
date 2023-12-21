@@ -17,6 +17,7 @@ from youtubify import is_track_acceptable
 metadata_version = 5
 DAY_MS = 24 * 60 * 60 * 1000
 
+
 def fetch_genre_data(spotify_urls):
     if CliStorage.spotify_token:
         spotify = SpotifyAPI(CliStorage.spotify_token)
@@ -128,9 +129,16 @@ def build_comment(isrc, track, belongings):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--check_comment', action='store_true', help='Check comment field to estimate if metadata is present', default=False)
-    parser.add_argument('-p', '--playlist_belonging', action='store_true', help='Force playlist belonging information update', default=False)
-    parser.add_argument('-i', '--interval', type=int, help='Minimum interval days to update playlist belongings', default=None)
+    parser.add_argument('-c', '--check_comment', action='store_true',
+                        help='Check comment field to estimate if metadata is present', default=False)
+    parser.add_argument('--force', action='store_true',
+                        help='Force metadata overwrite', default=False)
+    parser.add_argument('-p', '--playlist_belonging', action='store_true',
+                        help='Force playlist belonging information update', default=False)
+    parser.add_argument('-i', '--interval', type=int, help='Minimum interval days to update playlist belongings',
+                        default=None)
+    parser.add_argument('-f', '--flacified', action='store_true',
+                        help='Apply to flacified files', default=False)
     args = parser.parse_args()
     CliStorage.storage_setup()
     Storage.storage_setup()
@@ -149,22 +157,24 @@ if __name__ == '__main__':
         if is_track_acceptable(isrc):
             track_data = Storage.get_track_data(isrc)
             newfilename = track_data['filename']
-            fnext = get_filename_ext(newfilename, conf.downloaded_audio_folder)
+            folder = conf.flacified_audio_folder if args.flacified else conf.downloaded_audio_folder
+            fnext = get_filename_ext(newfilename, folder)
             newpath_ext = None
             if fnext is not None:
-                newpath_ext = os.path.join(conf.downloaded_audio_folder, fnext)
+                newpath_ext = os.path.join(folder, fnext)
 
             if newpath_ext is not None and os.path.isfile(newpath_ext):
                 pass
             else:
-                print('\nWARNING: track "%s" missing' % newfilename)
+                if not args.flacified:
+                    print('\nWARNING: track "%s" missing' % newfilename)
                 continue
 
             if args.check_comment:
                 if not is_comment_field_good(newpath_ext):
                     Storage.set_metadata_version(isrc, -1)
 
-            if Storage.get_metadata_version(isrc) >= metadata_version:
+            if not args.force and Storage.get_metadata_version(isrc) >= metadata_version:
                 if playlist_belonging_update:
                     track, belongings = get_track_and_belongings(isrc, playlists)
                     if track is None:
@@ -192,6 +202,7 @@ if __name__ == '__main__':
             for x, _, _ in art_files:
                 os.remove(x)
 
-            Storage.set_metadata_version(isrc, metadata_version)
+            if not args.flacified:
+                Storage.set_metadata_version(isrc, metadata_version)
     print('\nDone')
     Storage.save()

@@ -18,3 +18,4 @@ Run.lnk
 *.ipynb
 /*.log
 cut_files.*
+flacified/

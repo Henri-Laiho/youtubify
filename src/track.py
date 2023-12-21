@@ -1,6 +1,8 @@
 import os
 
-from src.conf import downloaded_audio_folder as download_folder
+from conf.conf_private import flacified_audio_folder
+from src.conf import downloaded_audio_folder, spotify_unsupported_preview_suffix
+from src.file_index import FileIndex
 from src.persistance.storage import Storage
 from src.utils.fs_utils import get_filename_ext, get_file_extension_if_exists
 
@@ -32,11 +34,26 @@ nice_path_encoding = {
 }
 
 
-
-def path_encode(path, encoding=nice_path_encoding):
+def path_encode(path, encoding=None):
+    if encoding is None:
+        encoding = nice_path_encoding
     for key in encoding:
         path = path.replace(key, encoding[key])
     return path
+
+
+def _get_local_folder_idx_and_filename(filename_no_extension: str, local_files_index: FileIndex):
+    if filename_no_extension.endswith(spotify_unsupported_preview_suffix):
+        filename_no_suffix = filename_no_extension[:-len(spotify_unsupported_preview_suffix)]
+        filename_no_extension = filename_no_suffix[:filename_no_suffix.rindex('.')]
+
+    if filename_no_extension in local_files_index.file_map:
+        filename = local_files_index.file_map[filename_no_extension]
+        index = local_files_index.which_folder(filename_no_extension)
+    else:
+        print('ERROR:', filename_no_extension, 'not found in local files')
+        return -1, None
+    return index, filename
 
 
 class SusTrack:
@@ -157,14 +174,14 @@ class Track:
             return path_encode(self.name, nice_path_encoding)
 
     def update_file_extension(self, old_name):
-        self.extension = get_file_extension_if_exists(old_name, download_folder)
+        self.extension = get_file_extension_if_exists(old_name, downloaded_audio_folder)
 
     def update_filename_on_disk(self, old_filename):
         if not self.extension: self.update_file_extension(old_filename)
         if not self.extension: return
 
-        old_path = os.path.join(download_folder, old_filename + self.extension)
-        new_path = os.path.join(download_folder, self.filename + self.extension)
+        old_path = os.path.join(downloaded_audio_folder, old_filename + self.extension)
+        new_path = os.path.join(downloaded_audio_folder, self.filename + self.extension)
 
         if os.path.isfile(old_path):
             print('Names changed: renaming file "%s" to "%s"' % (old_filename, self.filename))
@@ -192,11 +209,15 @@ class Track:
         if not filename:
             return None
 
-        filename_with_extension = get_filename_ext(filename, download_folder)
+        folder = flacified_audio_folder if playlist_type.flac else downloaded_audio_folder
+        filename_with_extension = get_filename_ext(filename, folder)
         if not filename_with_extension:
             return None
-        fullpath = playlist_type.get_dl_full_path(filename_with_extension)
+        fullpath = playlist_type.get_file_full_path(filename_with_extension)
         return formatter(filename_with_extension, number, fullpath)
+
+    def get_local_folder_idx_and_filename(self, local_files_index: FileIndex):
+        return _get_local_folder_idx_and_filename(self.filename, local_files_index)
 
     def describe_track(self):
         return f"{', '.join(self.artists)} - {self.name}"
@@ -206,3 +227,6 @@ class LocalTrack:
     def __init__(self, filename_with_extension):
         self.filename = filename_with_extension[:filename_with_extension.rindex('.')]
         self.is_local = True
+
+    def get_local_folder_idx_and_filename(self, local_files_index: FileIndex):
+        return _get_local_folder_idx_and_filename(self.filename, local_files_index)

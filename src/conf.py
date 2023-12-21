@@ -29,6 +29,11 @@ except ImportError:
     downloaded_audio_folder = 'downloaded'
 downloaded_artwork_folder = os.path.join(downloaded_audio_folder, 'art')
 
+try:
+    from conf.conf_private import flacified_audio_folder
+except ImportError:
+    flacified_audio_folder = 'flacified'
+
 
 def is_audio_file(filename):
     return not filename.startswith('.')

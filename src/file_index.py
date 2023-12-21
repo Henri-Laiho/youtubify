@@ -23,7 +23,6 @@ class FileIndex:
                     self.folder_map[key] = folder
                     self.folder_map[key_norm] = folder
         self.folders_index = {x: i for i, x in enumerate(folders)}
-        
 
     def which_folder(self, filename):
         if filename not in self.folder_map:

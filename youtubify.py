@@ -1,12 +1,17 @@
+import re
+import subprocess
+
 import click
 import json
 import os
 import webbrowser
 
 from src import conf
+from src.file_index import FileIndex
 from src.persistance.storage import Storage, SusCode
 from src.playlist import Playlist
 from src.search import Search
+from src.utils.fs_utils import ensure_dir
 from src.youtube.search import isrc_search, get_search_url, get_search_terms
 from src.ytdownload import get_filename_ext
 from src.universal_menu import Menu
@@ -139,7 +144,7 @@ def review(browser=False):
     track_count = len(tracks)
     for i, isrc in enumerate(tracks):
         sus_track = SusTrack(isrc)
-        print(f'{i+1}/{track_count} {sus_track}')
+        print(f'{i + 1}/{track_count} {sus_track}')
 
         if browser:
             if sus_track.url:
@@ -163,12 +168,98 @@ def review(browser=False):
             break
 
 
+def get_flacified_path(in_filename_ext: str):
+    filename_no_ext = in_filename_ext[:in_filename_ext.rindex('.')]
+    return os.path.join(conf.flacified_audio_folder, filename_no_ext + '.flac')
+
+
+def convert_track_file_to_flac(in_path: str, in_filename_ext: str):
+    flac_filepath = get_flacified_path(in_filename_ext)
+
+    # Analyze the audio file for maximum volume
+    analysis_command = [
+        'ffmpeg', '-i', in_path,
+        '-af', 'volumedetect',
+        '-f', 'null', '-'
+    ]
+    result = subprocess.run(analysis_command, capture_output=True, text=True, encoding='utf-8')
+
+    # Regex to extract max_volume from analysis
+    max_volume_match = re.search(r"max_volume: ([\-\d\.]+) dB", result.stderr)
+    if max_volume_match:
+        max_volume = float(max_volume_match.group(1))
+    else:
+        print("Failed to analyze file:", in_filename_ext)
+        return
+
+    # Calculate required gain to reach the target level
+    gain = -0.001 - max_volume
+
+    # Normalize the audio file and convert it to FLAC
+    normalize_command = [
+        'ffmpeg', '-i', in_path,
+        '-af', f'volume={gain}dB',
+        '-c:a', 'flac',
+        '-map_metadata', '0',
+        '-id3v2_version', '3',
+        '-y', flac_filepath
+    ]
+    subprocess.run(normalize_command)
+
+
+def convert_flacify_playlists_files_to_flac(overwrite: bool = False):
+    local_file_index = FileIndex(conf.spotify_local_files_folders)
+
+    playlists = get_playlists()
+
+    path_to_fname_ext = {}
+    for playlist in playlists:
+        if not playlist.is_flacify:
+            continue
+        for track in playlist.tracks:
+            if track.is_local:
+                index, filename = track.get_local_folder_idx_and_filename(local_file_index)
+                if not filename:
+                    continue
+                if index >= len(conf.spotify_local_files_folders):
+                    print('WARNING: configuration does not have enough local files folders')
+                    continue
+                path = os.path.join(conf.spotify_local_files_folders[index], filename)
+                path_to_fname_ext[path] = filename
+            else:
+                fname_ext = get_filename_ext(track.filename, conf.downloaded_audio_folder)
+                if not fname_ext:
+                    print(f'\nWARNING: track "{fname_ext}" missing')
+                    continue
+                path = os.path.join(conf.downloaded_audio_folder, fname_ext)
+                path_to_fname_ext[path] = fname_ext
+
+    to_skip = set()
+    if not overwrite:
+        for path, fname_ext in path_to_fname_ext.items():
+            if os.path.isfile(get_flacified_path(fname_ext)):
+                to_skip.add(path)
+
+    ensure_dir(conf.flacified_audio_folder)
+    number_of_tracks = len(path_to_fname_ext) - len(to_skip)
+    for i, (path, fname_ext) in enumerate(path_to_fname_ext.items()):
+        if path in to_skip:
+            continue
+        # TODO: use logger
+        print(f'Flacifying tracks: {i}/{number_of_tracks}')
+        convert_track_file_to_flac(path, fname_ext)
+
+
+def convert_flacify_playlists_files_to_flac_overwrite():
+    convert_flacify_playlists_files_to_flac(True)
+
+
 def ignore_sus_track(track):
     Storage.ignore_track(track.isrc)
 
 
 def confirm_old_link(track):
-    if track.url:  
+    if track.url:
         Storage.reset_track(track.isrc, force=True)
         Storage.add_access_url(track.isrc, track.url)
         Storage.confirm(track.isrc)
@@ -212,6 +303,7 @@ def reset_track():
         Storage.add_access_url(track.isrc, track.url)
         Storage.confirm(track.isrc)
 
+
 def list_manual():
     print("Manually confirmed tracks:")
     i = 0
@@ -229,11 +321,19 @@ def get_playlists() -> [Playlist]:
     return singleton_spotify_playlists
 
 
-def list_playlists(playlists: [Playlist]=None) -> [Playlist]:
+def list_playlists(playlists: [Playlist] = None) -> [Playlist]:
     if playlists is None:
         playlists = get_playlists()
     for i, playlist in enumerate(playlists):
         click.echo(f"{i:>5} {playlist.get_menu_string_with_active_state()}")
+    return playlists
+
+
+def list_flacify_playlists(playlists: [Playlist] = None) -> [Playlist]:
+    if playlists is None:
+        playlists = get_playlists()
+    for i, playlist in enumerate(playlists):
+        click.echo(f"{i:>5} {playlist.get_menu_string_with_flacify_state()}")
     return playlists
 
 
@@ -285,8 +385,7 @@ def compose_playlists():
 
 
 def toggle_active_playlists():
-    active_playlist_menu_exit = False
-    while not active_playlist_menu_exit:
+    while True:
         playlists = get_playlists()
         prompts = [p.get_menu_string_with_active_state() for p in playlists] + ['Back']
         selected = Menu(prompts).show()
@@ -296,21 +395,37 @@ def toggle_active_playlists():
         playlists[selected].toggle_is_active()
 
 
+def toggle_flacify_playlists():
+    while True:
+        playlists = get_playlists()
+        prompts = [p.get_menu_string_with_flacify_state() for p in playlists] + ['Back']
+        selected = Menu(prompts).show()
+        selected_prompt = prompts[selected]
+        if selected_prompt == 'Back':
+            return
+        playlists[selected].toggle_is_flacify()
+
+
 def interactive():
     while True:
-        prompt_commands = {'Toggle active playlists': toggle_active_playlists,
-                   'Convert playlists to youtube': convert_active_playlists_to_youtube_links,
-                   'Review sus tracks': review,
-                   'Review sus tracks while automatically opening youtube pages': review_with_browser,
-                   'Reset confirmed track': reset_track,
-                   'List manually confirmed tracks': list_manual,
-                   'Edit playlist compositions': compose_playlists,
-                   'Exit': quit}
+        prompt_commands = {
+            'Toggle active playlists': toggle_active_playlists,
+            'Convert playlists to youtube': convert_active_playlists_to_youtube_links,
+            'Review sus tracks': review,
+            'Review sus tracks while automatically opening youtube pages': review_with_browser,
+            'Reset confirmed track': reset_track,
+            'List manually confirmed tracks': list_manual,
+            'Edit playlist compositions': compose_playlists,
+            'Toggle active flacify playlists': toggle_flacify_playlists,
+            'Flacify playlists': convert_flacify_playlists_files_to_flac,
+            'Flacify playlists with overwrite': convert_flacify_playlists_files_to_flac_overwrite,
+            'Exit': quit
+        }
         prompts = list(prompt_commands.keys())
         selected_prompt_index = Menu(prompts).show()
         selected_prompt = prompts[selected_prompt_index]
         prompt_commands[selected_prompt]()
-        if selected_prompt_index not in [5, 7]:
+        if selected_prompt_index not in [6, 9, 10]:
             Storage.save()
             click.echo('Data saved.')
         click.echo()
@@ -321,6 +436,11 @@ def interactive():
 def cli(ctx):
     if ctx.invoked_subcommand is None:
         interactive()
+
+
+@cli.command
+def ls():
+    list_playlists()
 
 
 @cli.command("activate")
@@ -340,15 +460,37 @@ def deactivate_playlist(playlist_number):
 
 
 @cli.command
-def compose():
-    compose_playlists()
+def lsflacify():
+    list_flacify_playlists()
+
+
+@cli.command("set_flacify")
+@click.argument('playlist_number', type=int)
+def flacify_playlist(playlist_number: int):
+    get_playlists()[playlist_number].set_flacify(True)
+    Storage.save()
+    print('Data saved.')
+
+
+@cli.command("unset_flacify")
+@click.argument('playlist_number', type=int)
+def deflacify_playlist(playlist_number):
+    get_playlists()[playlist_number].set_flacify(False)
     Storage.save()
     print('Data saved.')
 
 
 @cli.command
-def ls():
-    list_playlists()
+@click.option("--overwrite", default=False, help="Overwrite flac files")
+def flacify(overwrite=False):
+    convert_flacify_playlists_files_to_flac(overwrite)
+
+
+@cli.command
+def compose():
+    compose_playlists()
+    Storage.save()
+    print('Data saved.')
 
 
 @cli.command
