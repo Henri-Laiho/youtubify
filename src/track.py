@@ -1,7 +1,6 @@
 import os
 
-from conf.conf_private import flacified_audio_folder
-from src.conf import downloaded_audio_folder, spotify_unsupported_preview_suffix
+from src.conf import downloaded_audio_folder, flacified_audio_folder, spotify_unsupported_preview_suffix
 from src.file_index import FileIndex
 from src.persistance.storage import Storage
 from src.utils.fs_utils import get_filename_ext, get_file_extension_if_exists
