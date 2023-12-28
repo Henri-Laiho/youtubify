@@ -127,6 +127,19 @@ def build_comment(isrc, track, belongings):
     return [f'Added {added}; isrc={isrc}; In {len(belongings):<4} playlists: {", ".join(belongings)}']
 
 
+def set_metadata_version(isrc: str, version: int, is_flacify: bool):
+    if is_flacify:
+        Storage.set_flac_metadata_version(isrc, version)
+    else:
+        Storage.set_metadata_version(isrc, version)
+
+
+def get_metadata_version(isrc: str, is_flacify: bool):
+    if is_flacify:
+        return Storage.get_flac_metadata_version(isrc)
+    return Storage.get_metadata_version(isrc)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--check_comment', action='store_true',
@@ -172,9 +185,9 @@ if __name__ == '__main__':
 
             if args.check_comment:
                 if not is_comment_field_good(newpath_ext):
-                    Storage.set_metadata_version(isrc, -1)
+                    set_metadata_version(isrc, -1, args.flacified)
 
-            if not args.force and Storage.get_metadata_version(isrc) >= metadata_version:
+            if not args.force and get_metadata_version(isrc, args.flacified) >= metadata_version:
                 if playlist_belonging_update:
                     track, belongings = get_track_and_belongings(isrc, playlists)
                     if track is None:
@@ -202,7 +215,6 @@ if __name__ == '__main__':
             for x, _, _ in art_files:
                 os.remove(x)
 
-            if not args.flacified:
-                Storage.set_metadata_version(isrc, metadata_version)
+            set_metadata_version(isrc, metadata_version, args.flacified)
     print('\nDone')
     Storage.save()

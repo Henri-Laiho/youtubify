@@ -80,6 +80,7 @@ class Storage:
     manual_confirm = {}
     isrc_to_track_data = {}
     metadata_version = {}
+    flac_metadata_version = {}
     lib_state_meta = {
         'playlist_belonging_update_time': (0, 0),
     }
@@ -101,6 +102,7 @@ class Storage:
         Storage.manual_confirm = {}
         Storage.isrc_to_track_data = {}
         Storage.metadata_version = {}
+        Storage.flac_metadata_version = {}
         Storage.lib_state_meta = {
             'playlist_belonging_update_time': (0, 0),
         }
@@ -132,7 +134,6 @@ class Storage:
         Storage.isrc_local_downloaded_status = {isrc: (now, OldStorage.isrc_local_downloaded_status[isrc]) for isrc in OldStorage.isrc_local_downloaded_status}
         Storage.metadata_version = {isrc: (now, OldStorage.metadata_version[isrc]) for isrc in OldStorage.metadata_version}
         Storage.active_playlist_ids = OldStorage.active_playlist_ids
-        Storage.flacify_playlist_ids = {}
         Storage.playlist_compositions = OldStorage.playlist_compositions
         Storage.private_data_update_time = now
         Storage.youtube_api_daily_requests = {'reset_time': timems(), 'count': 0}
@@ -163,6 +164,7 @@ class Storage:
     def get_lib_state_save_dict():
         return {
             'metadata_version': Storage.metadata_version,
+            'flac_metadata_version': Storage.flac_metadata_version,
             'isrc_local_downloaded_status': Storage.isrc_local_downloaded_status,
             'META': Storage.lib_state_meta,
         }
@@ -262,7 +264,8 @@ class Storage:
             if input('%s has been manually confirmed. Are you sure you want to reset it? (y/N): ').lower() != 'y':
                 return False
         for data in [Storage.manual_confirm, Storage.sus_tracks, Storage.isrc_to_access_url, Storage.is_autogen,
-                     Storage.ignored_tracks, Storage.metadata_version, Storage.isrc_local_downloaded_status]:
+                     Storage.ignored_tracks, Storage.metadata_version, Storage.flac_metadata_version,
+                     Storage.isrc_local_downloaded_status]:
             if isrc in data:
                 del data[isrc]
         return True
@@ -346,6 +349,10 @@ class Storage:
         return Storage.metadata_version[isrc][1] if isrc in Storage.metadata_version else -1
 
     @staticmethod
+    def get_flac_metadata_version(isrc: str):
+        return Storage.flac_metadata_version[isrc][1] if isrc in Storage.flac_metadata_version else -1
+
+    @staticmethod
     def get_isrc_to_track_datas():
         return { k: v[1] for k, v in Storage.isrc_to_track_data.items() }
 
@@ -363,6 +370,10 @@ class Storage:
     @staticmethod
     def set_metadata_version(isrc: str, version: int):
         Storage.metadata_version[isrc] = (timems(), version)
+
+    @staticmethod
+    def set_flac_metadata_version(isrc: str, version: int):
+        Storage.flac_metadata_version[isrc] = (timems(), version)
 
     @staticmethod
     def set_download_version(isrc: str, version: int):

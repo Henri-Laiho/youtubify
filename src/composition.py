@@ -43,6 +43,8 @@ class Composition:
 		result = Playlist()
 		result.tracks = ordered_tracks if self.with_duplicates else list(dict.fromkeys(ordered_tracks))
 		result.tracks.reverse()
+		result.id = self.name
+		result.is_flacify = Storage.is_flacify_playlist(result.id)
 
 		playlist_names = ' & '.join([x.get_displayname(False) for x in self.playlists])
 		result.name = f"{self.name} ({playlist_names})"

@@ -439,8 +439,10 @@ def interactive():
         prompts = list(prompt_commands.keys())
         selected_prompt_index = Menu(prompts).show()
         selected_prompt = prompts[selected_prompt_index]
-        prompt_commands[selected_prompt]()
-        if selected_prompt_index not in [6, 9, 10]:
+        command = prompt_commands[selected_prompt]
+        command()
+        if command not in [list_manual, convert_flacify_playlists_files_to_flac,
+                           convert_flacify_playlists_files_to_flac_overwrite, quit]:
             Storage.save()
             click.echo('Data saved.')
         click.echo()
