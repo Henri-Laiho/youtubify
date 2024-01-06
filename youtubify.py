@@ -309,7 +309,7 @@ def reset_track():
     url = input("Enter new track url or 'q' to return to menu: ")
     track.set_download_url(url)
     if url != '' and url != 'q':
-        Storage.add_access_url(track.isrc, track.url)
+        Storage.add_access_url(track.isrc, track.download_url)
         Storage.confirm(track.isrc)
 
 

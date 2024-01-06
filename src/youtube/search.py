@@ -44,7 +44,7 @@ def fill0(t):
 
 
 def hmsToS(hms):
-    s = hms.split(':')
+    s = hms.split(':') if ':' in hms else hms.split('.')
     return ((0 if len(s) < 3 else int(s[-3]) * 3600)
             + (0 if len(s) < 2 else int(s[-2]) * 60)
             + (0 if len(s) < 1 else int(s[-1])))
