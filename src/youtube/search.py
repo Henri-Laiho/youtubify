@@ -29,8 +29,8 @@ def yt_levenshtein(s1, s2, weight_1=1.0):
     alnumsplit2 = list(filter(lambda x: len(x) > 0, alnumsplit2))
     alnum1 = ''.join(filter(str.isalnum, sl1))
     alnum2 = ''.join(filter(str.isalnum, sl2))
-    match1 = sum(x in alnum2 for x in alnumsplit1) / len(alnumsplit1) * weight_1
-    match2 = sum(x in alnum1 for x in alnumsplit2) / len(alnumsplit2) * (2 - weight_1)
+    match1 = sum(x in alnum2 for x in alnumsplit1) / max(1, len(alnumsplit1)) * weight_1
+    match2 = sum(x in alnum1 for x in alnumsplit2) / max(1, len(alnumsplit2)) * (2 - weight_1)
     if match1 > match2:
         match = match1*1.4 + match2*0.75
     else:
