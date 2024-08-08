@@ -19,3 +19,5 @@ Run.lnk
 /*.log
 cut_files.*
 flacified/
+.aider*
+.coverage

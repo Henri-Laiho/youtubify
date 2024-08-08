@@ -1,7 +1,7 @@
 from click.testing import CliRunner
 from os import linesep
 
-from test_constants import playlist_json, isrc_to_data_liked_songs_active, ytfy_data_liked_songs_active
+from _test_constants import playlist_json, isrc_to_data_liked_songs_active, ytfy_data_liked_songs_active
 from youtubify import convert, lsman, ls, activate
 
 nl = linesep.encode()
