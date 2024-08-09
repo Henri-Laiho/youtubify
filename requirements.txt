@@ -3,7 +3,7 @@ youtube-search
 numpy
 setuptools~=68.0.0
 wget~=3.2
-levenshtein~=0.21.1
+levenshtein
 music-tag
 click~=8.1.7
 colorama~=0.4.6

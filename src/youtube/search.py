@@ -78,7 +78,7 @@ def search_track(isrc, artists: list, title: str, duration_s=None, official=Fals
         url = BASE_URL + x['url_suffix']
         url_to_result[url] = x
         match = 0
-        views = ''.join(filter(str.isnumeric, x['views']))
+        views = ''.join(filter(str.isnumeric, str(x['views'])))
         if (len(views) > 0 and int(views) > 500
                 and (hmsToS(x['duration']) < 900 or duration_s is not None and hmsToS(x['duration']) < duration_s * 2)
                 and sum(part in x['title'] for part in titlesplit) > len(titlesplit) // 2
