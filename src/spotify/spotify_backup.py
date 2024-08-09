@@ -166,7 +166,6 @@ def main(args):
         return None, None, None
     logging.info('Logged in as {display_name} ({id})'.format(**me))
 
-    old_playlists = None
     old_playlist_id_map = {}
     if os.path.isfile(conf.playlists_file):
         with open(conf.playlists_file, "r") as f:

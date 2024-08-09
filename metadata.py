@@ -117,7 +117,8 @@ def get_track_and_belongings(isrc, playlists):
         if isrc in playlist.isrc_map:
             belonging_to.append(playlist)
     belonging_to.sort(key=lambda it: len(it.tracks))
-    track = belonging_to[-1].isrc_map[isrc] if len(belonging_to) else None
+    by_date_added = sorted(belonging_to, key=lambda it: it.isrc_map[isrc].date_added + it.isrc_map[isrc].time_added)
+    track = by_date_added[0].isrc_map[isrc] if len(belonging_to) else None
     belongings = [it.get_displayname() for it in belonging_to]
     return track, belongings
 
