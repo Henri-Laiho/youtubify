@@ -1,4 +1,5 @@
 import os
+import unicodedata
 
 from src.conf import downloaded_audio_folder, flacified_audio_folder, spotify_unsupported_preview_suffix
 from src.file_index import FileIndex
@@ -38,7 +39,7 @@ def path_encode(path, encoding=None):
         encoding = nice_path_encoding
     for key in encoding:
         path = path.replace(key, encoding[key])
-    return path
+    return unicodedata.normalize('NFC', path)
 
 
 def _get_local_folder_idx_and_filename(filename_no_extension: str, local_files_index: FileIndex):
