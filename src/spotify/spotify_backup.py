@@ -211,7 +211,7 @@ def main(args):
     if 'liked' in args.dump:
         logging.info('Loading liked songs...')
         liked_tracks = populate_tracks_and_make_playlist({'name': 'Liked Songs', 'id': me['id'], 'snapshot_id': None}, 
-                                                         url='users/{user_id}/tracks'.format(user_id=me['id']),
+                                                         url='me/tracks',
                                                          fuzzy_with_playlist=old_playlist_id_map[me['id']] if liked_fuzzy else None)
         playlists += [liked_tracks]
 
