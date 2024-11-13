@@ -169,7 +169,7 @@ class Track:
 
     def add_album_and_isrc_to_filename(self):
         # TODO: nicer path_encode or better isrc validation
-        self.filename = "%s {%s} {%s}" % self._get_nice_path(), path_encode(self.album_name), self.isrc
+        self.filename = "%s {%s} {%s}" % (self._get_nice_path(), path_encode(self.album_name), self.isrc)
 
     def _get_nice_path(self):
         if len(self.artists) > 0 and self.artists[0]:

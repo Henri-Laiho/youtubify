@@ -68,13 +68,17 @@ def search_track(max_results=100):
         return search.get_results(max_results)
 
 
-def store_track_data(track: Track, temp_name_to_isrc):
+def store_track_data(track: Track, temp_name_to_isrc, processed_isrcs: set):
     if track.is_local:
         return
+    if track.isrc in processed_isrcs:
+        return
+
     if is_filename_not_unique(track, temp_name_to_isrc):
         print('Duplicate names: %s. Adding album name.' % track.filename)
         track.add_album_name_to_filename()
     if is_filename_not_unique(track, temp_name_to_isrc):
+        print('WARNING: Duplicate name and album: %s. Adding ISRC ID.' % track.filename)
         track.add_album_and_isrc_to_filename()
     if is_filename_not_unique(track, temp_name_to_isrc):
         print('ERROR: duplicate artist, title, album and isrc: %s. Ignoring duplicate.' % track.filename)
@@ -85,10 +89,11 @@ def store_track_data(track: Track, temp_name_to_isrc):
     if persisted_filename and persisted_filename != track.filename:
         track.update_filename_on_disk(persisted_filename)
     Storage.set_track_data(track.isrc, artists=track.artists, title=track.name, filename=track.filename)
+    processed_isrcs.add(track.isrc)
 
 
 def is_filename_not_unique(track, temp_name_to_isrc):
-    return track.filename.lower() in temp_name_to_isrc
+    return track.filename.lower() in temp_name_to_isrc and track.isrc != temp_name_to_isrc[track.filename.lower()]
 
 
 def needs_converting(isrc):
@@ -106,12 +111,11 @@ def convert_track_to_youtube_link(track: Track):
         Storage.add_access_url(track.isrc, track.download_url)
 
 
-def convert_playlist_tracks_to_youtube_links(playlist: Playlist):
-    temp_name_to_isrc = dict()
+def convert_playlist_tracks_to_youtube_links(playlist: Playlist, temp_name_to_isrc: dict, processed_isrcs: set):
     tracks = playlist.tracks
 
     for track in tracks:
-        store_track_data(track, temp_name_to_isrc)
+        store_track_data(track, temp_name_to_isrc, processed_isrcs)
 
     number_of_tracks = len(tracks)
 
@@ -125,11 +129,13 @@ def convert_playlist_tracks_to_youtube_links(playlist: Playlist):
 
 def convert_active_playlists_to_youtube_links():
     playlists = get_playlists()
+    temp_name_to_isrc = dict()
+    processed_isrcs = set()
 
     # TODO: This code does not use Storage anymore. Think how to link up with Storage if even needed.
     for playlist in playlists:
         if not playlist.is_active: continue
-        convert_playlist_tracks_to_youtube_links(playlist)
+        convert_playlist_tracks_to_youtube_links(playlist, temp_name_to_isrc, processed_isrcs)
 
 
 def open_browser_link_if_valid(url):
