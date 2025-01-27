@@ -16,6 +16,7 @@ def is_file_not_downloaded(track_dict):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', '--verify', action='store_true', help='Verify all files exist', default=False)
+    parser.add_argument('-t', '--threads', type=int, help='Number of parallel downloads',default=3)
     args = parser.parse_args()
     Storage.storage_setup()
 
@@ -40,7 +41,7 @@ if __name__ == '__main__':
 
     init_yt_isrc_tracks(tracks, playlists)
 
-    download_playlist(tracks, num_threads=3, log_handler=console)
+    download_playlist(tracks, num_threads=args.threads, log_handler=console)
 
     Storage.save()
     print('Data saved.')

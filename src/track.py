@@ -200,7 +200,8 @@ class Track:
 
     def get_persisted_filename(self):
         # TODO: remove when track objects are created from storage
-        return Storage.get_track_data(self.isrc)['filename'] if self.isrc in Storage.isrc_to_track_data else None
+        data = Storage.get_track_data(self.isrc)
+        return data['filename'] if data and 'filename' in data else None
 
     def __eq__(self, other):
         return isinstance(other, Track) and self.spotify_id == other.spotify_id
