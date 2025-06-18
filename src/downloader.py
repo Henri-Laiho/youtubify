@@ -22,6 +22,7 @@ download_version = 1
 class DlThread(threading.Thread):
     def __init__(self, thread_id, name, queue: Queue, queue_lock, check_exit, update_status_callback, log_handler):
         threading.Thread.__init__(self)
+        self.update_status_callback = lambda data: update_status_callback(thread_id, data)
         self.threadID = thread_id
         self.name = name
         self.queue = queue
@@ -29,13 +30,14 @@ class DlThread(threading.Thread):
         self.checkExit = check_exit
         self.log = logging.Logger(name, level=logging.INFO)
         if log_handler: self.log.addHandler(log_handler)
-        self.downloader = YtDownload(outDir=conf.downloaded_audio_folder, logger=self.log, update_status_callback=lambda data: update_status_callback(thread_id, data))
+        self.downloader = YtDownload(outDir=conf.downloaded_audio_folder, logger=self.log, update_status_callback=self.update_status_callback)
         self.errors = 0
 
     def run(self):
         logging.info("Starting " + self.name)
         self.process_data()
         logging.info("Exiting " + self.name)
+        self.update_status_callback({'speed': 0})
 
     def process_data(self):
         while not self.checkExit():
@@ -57,7 +59,7 @@ class DlThread(threading.Thread):
                             Storage.set_download_version(isrc, download_version)
                             break
                         except youtube_dl.utils.DownloadError as err:
-                            logging.warning("%s %s (%s) download error:" % (self.name, filename, yt) + str(err))
+                            logging.warning("%s %s (%s) download error: " % (self.name, filename, yt) + str(err))
                             Storage.add_download_error(isrc, yt)
                             if Storage.get_download_errors(isrc, yt) > conf.Flags.max_download_errors:
                                 logging.critical("%s Too many download errors, resetting track %s - %s:" % (self.name, filename, yt) + str(err))
@@ -107,7 +109,8 @@ def download_playlist(tracks, num_threads=1, log_handler=None):
     threads = []
     thread_status_lock = threading.Lock()
     last_status = {'print_time': 0, 'lines': 0}
-    thread_statuses = {-1: {'_eta_str': '0s', '_percent_str': '  0.0%', '_speed_str': '  0B/s', '_total_bytes_str': '0B', 'filename': '', 'status': '', 'speed': 0}}
+    thread_status_template = {'_eta_str': '0s', '_percent_str': '  0.0%', '_speed_str': '  0B/s', '_total_bytes_str': '0B', 'filename': '', 'status': '', 'speed': 0}
+    thread_statuses = {}
     
     def checkExit():
         return exitFlag
@@ -121,8 +124,8 @@ def download_playlist(tracks, num_threads=1, log_handler=None):
                 fname = d['filename'][len(conf.downloaded_audio_folder):]
                 lines.append('%d. %s / %s @ %s, ETA %s %-65s' % (thread_id, d['_percent_str'], d['_total_bytes_str'], d['_speed_str'], d['_eta_str'], fname[:60]))
         lines.append(
-            'Total download speed: %.2fKiB/s   \r' %
-            (sum([thread_statuses[x+1]['speed'] for x in range(num_threads) if 'speed' in thread_statuses[x+1] and thread_statuses[x+1]['speed']])/1024)
+            'Total download speed: %.3fMiB/s   \r' %
+            (sum([thread_statuses[x+1]['speed'] for x in range(num_threads) if 'speed' in thread_statuses[x+1] and thread_statuses[x+1]['speed']])/1024/1024)
         )
         if log_handler: log_handler.acquire()
         print('\n'.join(lines))
@@ -134,7 +137,7 @@ def download_playlist(tracks, num_threads=1, log_handler=None):
     def update_status(thread_id, data):
         thread_status_lock.acquire()
         for key in thread_statuses[thread_id]:
-            if key in data:
+            if key in data and data[key]:
                 thread_statuses[thread_id][key] = data[key]
         t = time.time_ns()
         if t-last_status['print_time'] > 10e8:
@@ -146,10 +149,8 @@ def download_playlist(tracks, num_threads=1, log_handler=None):
     for threadID, tName in enumerate(threadList):
         thread = DlThread(threadID+1, tName, workQueue, queueLock, checkExit, update_status, log_handler)
         threads.append(thread)
-        thread_statuses[threadID+1] = copy.copy(thread_statuses[-1])
+        thread_statuses[threadID+1] = copy.copy(thread_status_template)
         thread.start()
-    del thread_statuses[-1]
-
 
     # Fill the queue
     queueLock.acquire()

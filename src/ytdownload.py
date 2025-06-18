@@ -1,4 +1,5 @@
 import logging
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 import yt_dlp as youtube_dl
 import os
@@ -15,6 +16,22 @@ def sanitize_string(input_string):
         ch if re.match(r'[A-Za-z0-9 ]', ch) else "%u" + format(ord(ch), '04x') for ch in input_string
     ])
     return sanitized_string
+
+
+def sanitize_youtube_url(url: str) -> str:
+    """
+    Keep only the ?v=<id> query param on youtube.com/watch URLs.
+    All other URLs are returned unchanged.
+    """
+    parsed = urlparse(url)
+    if parsed.netloc.lower().endswith("youtube.com") and parsed.path.startswith("/watch"):
+        query = parse_qs(parsed.query, keep_blank_values=True)
+        v_value = query.get("v")
+        new_query = urlencode({"v": v_value[0]}) if v_value else ""
+        parsed = parsed._replace(query=new_query)
+        return urlunparse(parsed)
+
+    return url
 
 
 class LowerCaseFileIndex:
@@ -60,6 +77,7 @@ class YtDownload(object):
             d['_percent_str'], d['_total_bytes_str'], d['_speed_str'], d['_eta_str']))
 
     def download(self, link, filename, overwrite=False):
+        clean_link = sanitize_youtube_url(link)
         if filename is not None:
             fname = get_filename_ext(filename, self.outdir)
             if fname is not None:
@@ -85,7 +103,7 @@ class YtDownload(object):
             filename_sanitized = sanitize_string(filename)
             self.ydl_opts['outtmpl'] = os.path.join(self.outdir, filename_sanitized + '.%(ext)s')
         with youtube_dl.YoutubeDL(self.ydl_opts) as ydl:
-            ydl.download([link])
+            ydl.download([clean_link])
         if filename is not None:
             self.ydl_opts['outtmpl'] = self.outtempl
             fname = get_filename_ext(filename_sanitized, self.outdir)
