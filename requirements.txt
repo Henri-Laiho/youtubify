@@ -1,7 +1,7 @@
 yt-dlp
 youtube-search
 numpy
-setuptools~=68.0.0
+setuptools~=78.1.1
 wget~=3.2
 levenshtein
 music-tag
